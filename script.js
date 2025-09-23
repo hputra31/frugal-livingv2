@@ -81,6 +81,29 @@ function initializeLandingPageLogic() {
         observer.observe(section);
     });
 
+    // Feature icon hover animation
+    const featureItems = document.querySelectorAll('#features .fade-in-section');
+    featureItems.forEach(item => {
+        const iconContainer = item.querySelector('.w-16.h-16'); // The colored box
+
+        item.addEventListener('mouseenter', () => {
+            anime.remove(iconContainer);
+            anime({
+                targets: iconContainer,
+                translateY: -8,
+                scale: 1.15,
+                rotate: '10deg',
+                duration: 300,
+                easing: 'easeOutCubic'
+            });
+        });
+
+        item.addEventListener('mouseleave', () => {
+            anime.remove(iconContainer);
+            anime({ targets: iconContainer, translateY: 0, scale: 1, rotate: '0deg', duration: 400, easing: 'easeOutElastic(1, .8)' });
+        });
+    });
+
     // Sticky header logic
     const header = document.getElementById('main-header');
     const backToTopButton = document.getElementById('back-to-top');
