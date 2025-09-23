@@ -35,121 +35,17 @@
     <meta property="twitter:description" content="Kendalikan keuangan Anda dengan Frugal Living. Lacak pengeluaran, buat anggaran, dan capai target finansial dengan mudah.">
     <meta property="twitter:image" content="https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=1200&auto=format&fit=crop"> <!-- ❗ Ganti dengan URL gambar promosi Anda -->
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.165.0/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 576 512%22><path fill=%22%234f46e5%22 d=%22M512 160c-17.7 0-32 14.3-32 32s14.3 32 32 32s32-14.3 32-32s-14.3-32-32-32zm-40.1 48.1c-17.6-4.4-29.9-21.5-25.5-39.1s21.5-29.9 39.1-25.5s29.9 21.5 25.5 39.1s-21.5 29.9-39.1 25.5zM320 64c0-35.3-28.7-64-64-64S192 28.7 192 64H320zm-64 32c17.7 0 32-14.3 32-32s-14.3-32-32-32s-32 14.3-32 32s14.3 32 32 32zM160 128H32C14.3 128 0 142.3 0 160V352c0 17.7 14.3 32 32 32h96v32c0 17.7 14.3 32 32 32s32-14.3 32-32V384h32c70.7 0 128-57.3 128-128c0-44.2-22.5-83.4-56.7-106.8c-1.4-1-2.8-2-4.2-3.1c-18.2-14.1-40-22.1-63.1-22.1H160zm0 64h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H160v64h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H160V192z%22/></svg>">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap');
-        body { font-family: 'Poppins', sans-serif; }
-        html {
-            scroll-behavior: smooth;
-        }
-        .gradient-bg {
-            background: linear-gradient(135deg, #f5f7fa, #c3cfe2, #a5b4fc, #6366f1);
-            background-size: 400% 400%;
-            animation: moveGradient 20s ease infinite;
-        }
-        @keyframes moveGradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-        .float-animation { animation: float 6s ease-in-out infinite; }
-        .fade-in-section {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-        }
-        .fade-in-section.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        #main-header.is-sticky {
-            position: fixed;
-            background-color: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-            animation: slide-in-down 0.5s ease-out;
-        }
-        @keyframes slide-in-down {
-            from { transform: translateY(-100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        /* Custom styles for details/summary accordion */
-        details > summary {
-            list-style: none; /* Remove default marker */
-        }
-        details > summary::-webkit-details-marker {
-            display: none; /* Remove default marker for Safari */
-        }
-        details[open] > summary .accordion-icon {
-            transform: rotate(180deg);
-        }
-        #back-to-top {
-            transform: translateY(20px);
-            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-        }
-        #back-to-top.is-visible {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translateY(0);
-        }
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .animate-fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; }
-        .money-rain-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 1;
-            pointer-events: none;
-        }
-        .money {
-            position: absolute;
-            top: -10%;
-            color: rgba(100, 180, 100, 0.5);
-            font-size: 1.5rem;
-            animation: fall linear infinite;
-            text-shadow: 0 0 5px rgba(0,0,0,0.2);
-        }
-        @keyframes fall {
-            to {
-                transform: translateY(110vh) rotate(360deg);
-            }
-        }
-        /* New styles for animated gradient button */
-        .animated-gradient-btn {
-            background-size: 200% auto;
-        }
-        .animated-gradient-btn:hover {
-            background-position: right center; /* Moves the gradient on hover */
-        }
-    </style>
 </head>
-<body class="gradient-bg text-gray-800">
+<body class="gradient-bg-landing text-gray-800">
 
-    <!-- Canvas for Particle Background -->
-    <canvas id="particle-canvas" class="fixed top-0 left-0 w-full h-full z-0 pointer-events-none"></canvas>
-    <div class="money-rain-container">
-        <i class="fas fa-money-bill-wave money" style="left: 5%; animation-duration: 15s; animation-delay: -7s; font-size: 1.2rem; opacity: 0.7;"></i><i class="fas fa-money-bill-wave money" style="left: 15%; animation-duration: 10s; animation-delay: -1s;"></i><i class="fas fa-money-bill-wave money" style="left: 25%; animation-duration: 12s; animation-delay: -10s; font-size: 1.8rem;"></i><i class="fas fa-money-bill-wave money" style="left: 35%; animation-duration: 9s; animation-delay: -3s;"></i><i class="fas fa-money-bill-wave money" style="left: 45%; animation-duration: 14s; animation-delay: -5s; font-size: 1.4rem;"></i><i class="fas fa-money-bill-wave money" style="left: 55%; animation-duration: 11s; animation-delay: -8s;"></i><i class="fas fa-money-bill-wave money" style="left: 65%; animation-duration: 13s; animation-delay: -4s; font-size: 1.6rem;"></i><i class="fas fa-money-bill-wave money" style="left: 75%; animation-duration: 8s; animation-delay: -9s;"></i><i class="fas fa-money-bill-wave money" style="left: 85%; animation-duration: 16s; animation-delay: -6s; font-size: 1.3rem;"></i><i class="fas fa-money-bill-wave money" style="left: 95%; animation-duration: 10s; animation-delay: -12s;"></i>
-    </div>
+    <!-- Container for 3D Background -->
+    <div id="three-bg" class="fixed top-0 left-0 w-full h-full z-0 pointer-events-none"></div>
 
     <!-- Header -->
     <header id="main-header" class="absolute top-0 left-0 w-full z-30 py-6 px-4 sm:px-6 lg:px-8 transition-all duration-300">
@@ -169,13 +65,13 @@
     <!-- Hero Section -->
     <main class="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
-            <h2 class="text-4xl md:text-6xl font-extrabold mb-4 leading-tight animate-fade-in-up">
+            <h2 class="text-4xl md:text-6xl font-extrabold mb-4 leading-tight opacity-0">
                 Kelola Keuangan dengan <span class="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Cerdas</span>
             </h2>
-            <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto mb-8 animate-fade-in-up" style="animation-delay: 0.2s;">
+            <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto mb-8 opacity-0">
                 Frugal Living adalah aplikasi budgeting all-in-one yang membantu Anda melacak pengeluaran, membuat anggaran, dan mencapai target finansial dengan mudah.
             </p>
-            <a href="#pricing" class="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-bold py-3 px-8 text-base md:py-4 md:px-10 md:text-lg rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 animate-fade-in-up" style="animation-delay: 0.4s;">
+            <a href="#pricing" class="inline-block bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-bold py-3 px-8 text-base md:py-4 md:px-10 md:text-lg rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 opacity-0">
                 Lihat Penawaran <i class="fas fa-tags ml-2"></i>
             </a>
         </div>
@@ -419,105 +315,7 @@
         <i class="fas fa-arrow-up"></i>
     </a>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, {
-                threshold: 0.1 // Trigger when 10% of the element is visible
-            });
-
-            const sections = document.querySelectorAll('.fade-in-section');
-            sections.forEach(section => {
-                observer.observe(section);
-            });
-
-            // Sticky header logic
-            const header = document.getElementById('main-header');
-            const backToTopButton = document.getElementById('back-to-top');
-
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 20) {
-                    header.classList.add('is-sticky');
-                } else {
-                    header.classList.remove('is-sticky');
-                }
-
-                if (window.scrollY > 300) {
-                    backToTopButton.classList.add('is-visible');
-                } else {
-                    backToTopButton.classList.remove('is-visible');
-                }
-            });
-
-            // Particle background animation
-            const canvas = document.getElementById('particle-canvas');
-            const ctx = canvas.getContext('2d');
-            let particles = [];
-
-            function resizeCanvas() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            }
-
-            class Particle {
-                constructor() {
-                    this.x = Math.random() * canvas.width;
-                    this.y = Math.random() * canvas.height;
-                    this.vx = Math.random() * 0.4 - 0.2; // slow horizontal velocity
-                    this.vy = Math.random() * 0.4 - 0.2; // slow vertical velocity
-                    this.radius = Math.random() * 1.5 + 0.5;
-                    this.opacity = Math.random() * 0.5 + 0.2;
-                }
-
-                draw() {
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
-                    ctx.fill();
-                }
-
-                update() {
-                    this.x += this.vx;
-                    this.y += this.vy;
-
-                    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-                    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-                }
-            }
-
-            function initParticles() {
-                particles = [];
-                const numberOfParticles = Math.floor((canvas.width * canvas.height) / 15000);
-                for (let i = 0; i < numberOfParticles; i++) {
-                    particles.push(new Particle());
-                }
-            }
-
-            function animateParticles() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                particles.forEach(p => {
-                    p.update();
-                    p.draw();
-                });
-                requestAnimationFrame(animateParticles);
-            }
-
-            window.addEventListener('resize', () => {
-                resizeCanvas();
-                initParticles();
-            });
-
-            resizeCanvas();
-            initParticles();
-            animateParticles();
-        });
-    </script>
+    <script src="script.js"></script>
 
 </body>
 </html>
