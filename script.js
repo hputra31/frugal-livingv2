@@ -285,7 +285,9 @@ function initializeAppLogic() {
         transactionManagement: {
             currentPage: 1,
             transactionsPerPage: 10, // Show 10 transactions per page
-            totalTransactions: 0
+            totalTransactions: 0,
+            startDate: '', // Filter tanggal mulai
+            endDate: ''    // Filter tanggal akhir
         },
         goals: [],
         receivables: [],
@@ -441,15 +443,24 @@ function initializeAppLogic() {
         },
 
         // Transaction functions
-        async getTransactions(userId, page = 1, perPage = 10) {
+        async getTransactions(userId, page = 1, perPage = 10, startDate = null, endDate = null) {
             const from = (page - 1) * perPage;
             const to = from + perPage - 1;
-            const { data, error, count } = await supabase
+            
+            let query = supabase
                 .from('transactions')
                 .select('*', { count: 'exact' })
                 .eq('user_id', userId)
-                .order('date', { ascending: false })
-                .range(from, to);
+                .order('date', { ascending: false });
+
+            if (startDate) {
+                query = query.gte('date', startDate);
+            }
+            if (endDate) {
+                query = query.lte('date', endDate);
+            }
+
+            const { data, error, count } = await query.range(from, to);
             return { data, error, count };
         },
         
@@ -771,8 +782,7 @@ function initializeAppLogic() {
         
         try {
             console.log('🔄 Loading data from Supabase...');
-            
-            const { currentPage, transactionsPerPage } = appState.transactionManagement;
+            const { currentPage, transactionsPerPage, startDate, endDate } = appState.transactionManagement;
 
             const [
                 { data: transactions, error: transError, count: transCount },
@@ -781,7 +791,7 @@ function initializeAppLogic() {
                 { data: receivables, error: receivableError },
                 { data: debts, error: debtError }
             ] = await Promise.all([
-                api.getTransactions(userId, currentPage, transactionsPerPage),
+                api.getTransactions(userId, currentPage, transactionsPerPage, startDate, endDate),
                 api.getBudgets(userId),
                 api.getGoals(userId),
                 api.getReceivables(userId),
@@ -1702,6 +1712,22 @@ function initializeAppLogic() {
                                 oninput="filterTransactions()"
                             />
                         </div>
+
+                        <!-- Date Range Filter -->
+                        <div class="flex items-center gap-2">
+                            <input
+                                type="date"
+                                id="start-date-filter"
+                                onchange="handleDateFilterChange()"
+                                class="w-full px-3 py-3 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium bg-white/80 backdrop-blur-sm transition-all duration-300 text-sm shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                            />
+                            <input
+                                type="date"
+                                id="end-date-filter"
+                                onchange="handleDateFilterChange()"
+                                class="w-full px-3 py-3 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium bg-white/80 backdrop-blur-sm transition-all duration-300 text-sm shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                            />
+                        </div>
                         
                         <!-- Filter Buttons -->
                         <div class="flex flex-wrap gap-2">
@@ -1765,7 +1791,7 @@ function initializeAppLogic() {
         if (container) container.innerHTML = `<div class="text-center p-8"><i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i></div>`;
 
         // Ambil data baru dari API
-        const { data, error, count } = await api.getTransactions(appState.user.id, page, transactionsPerPage);
+        const { data, error, count } = await api.getTransactions(appState.user.id, page, transactionsPerPage, appState.transactionManagement.startDate, appState.transactionManagement.endDate);
         if (error) {
             showSyncStatus('error', 'Gagal memuat halaman transaksi.');
             return;
@@ -1826,15 +1852,11 @@ function initializeAppLogic() {
                                 class="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium bg-white/80 backdrop-blur-sm transition-all duration-300 text-sm sm:text-base shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-gray-400"
                                 required
                             >
-                                <option value="">✨ Pilih Kategori Anggaran</option>
-                                <option value="Makanan">🍽️ Makanan & Minuman</option>
-                                <option value="Transportasi">🚗 Transportasi</option>
-                                <option value="Belanja">🛍️ Belanja</option>
-                                <option value="Tagihan">📄 Tagihan & Utilitas</option>
-                                <option value="Hiburan">🎬 Hiburan</option>
-                                <option value="Kesehatan">🏥 Kesehatan</option>
-                                <option value="Pendidikan">📚 Pendidikan</option>
-                                <option value="Lainnya">📦 Lainnya</option>
+                                <option value="">✨ Pilih Kategori</option>
+                                ${appState.categories
+                                    .filter(c => c.type === 'expense')
+                                    .map(c => `<option value="${c.name}">${c.name}</option>`)
+                                    .join('')}
                             </select>
                             <input
                                 type="number"
@@ -4246,26 +4268,20 @@ function initializeAppLogic() {
             incomeBtn.className = 'flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-300 text-gray-600 hover:text-gray-800';
             categorySelect.innerHTML = `
                 <option value="">✨ Pilih Kategori</option>
-                <option value="Makanan">🍽️ Makanan & Minuman</option>
-                <option value="Transportasi">🚗 Transportasi</option>
-                <option value="Belanja">🛍️ Belanja</option>
-                <option value="Tagihan">📄 Tagihan & Utilitas</option>
-                <option value="Hiburan">🎬 Hiburan</option>
-                <option value="Kesehatan">🏥 Kesehatan</option>
-                <option value="Pendidikan">📚 Pendidikan</option>
-                <option value="Lainnya">📦 Lainnya</option>
+                ${appState.categories
+                    .filter(c => c.type === 'expense')
+                    .map(c => `<option value="${c.name}">${c.name}</option>`)
+                    .join('')}
             `;
         } else {
             incomeBtn.className = 'flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-300 relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg transform scale-105';
             expenseBtn.className = 'flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-300 text-gray-600 hover:text-gray-800';
             categorySelect.innerHTML = `
                 <option value="">✨ Pilih Kategori</option>
-                <option value="Gaji">💰 Gaji & Upah</option>
-                <option value="Freelance">💻 Freelance</option>
-                <option value="Investasi">📈 Investasi & Dividen</option>
-                <option value="Hadiah">🎁 Hadiah & Bonus</option>
-                <option value="Bisnis">🏪 Bisnis Sampingan</option>
-                <option value="Lainnya">📦 Lainnya</option>
+                ${appState.categories
+                    .filter(c => c.type === 'income')
+                    .map(c => `<option value="${c.name}">${c.name}</option>`)
+                    .join('')}
             `;
         }
     }
@@ -4659,23 +4675,15 @@ function initializeAppLogic() {
         const isExpense = transaction.type === 'expense';
 
         const expenseCategories = `
-            <option value="Makanan" ${transaction.category === 'Makanan' ? 'selected' : ''}>🍽️ Makanan & Minuman</option>
-            <option value="Transportasi" ${transaction.category === 'Transportasi' ? 'selected' : ''}>🚗 Transportasi</option>
-            <option value="Belanja" ${transaction.category === 'Belanja' ? 'selected' : ''}>🛍️ Belanja</option>
-            <option value="Tagihan" ${transaction.category === 'Tagihan' ? 'selected' : ''}>📄 Tagihan & Utilitas</option>
-            <option value="Hiburan" ${transaction.category === 'Hiburan' ? 'selected' : ''}>🎬 Hiburan</option>
-            <option value="Kesehatan" ${transaction.category === 'Kesehatan' ? 'selected' : ''}>🏥 Kesehatan</option>
-            <option value="Pendidikan" ${transaction.category === 'Pendidikan' ? 'selected' : ''}>📚 Pendidikan</option>
-            <option value="Lainnya" ${transaction.category === 'Lainnya' ? 'selected' : ''}>📦 Lainnya</option>
+            ${appState.categories.filter(c => c.type === 'expense').map(c => 
+                `<option value="${c.name}" ${transaction.category === c.name ? 'selected' : ''}>${c.name}</option>`
+            ).join('')}
         `;
 
         const incomeCategories = `
-            <option value="Gaji" ${transaction.category === 'Gaji' ? 'selected' : ''}>💰 Gaji & Upah</option>
-            <option value="Freelance" ${transaction.category === 'Freelance' ? 'selected' : ''}>💻 Freelance</option>
-            <option value="Investasi" ${transaction.category === 'Investasi' ? 'selected' : ''}>📈 Investasi & Dividen</option>
-            <option value="Hadiah" ${transaction.category === 'Hadiah' ? 'selected' : ''}>🎁 Hadiah & Bonus</option>
-            <option value="Bisnis" ${transaction.category === 'Bisnis' ? 'selected' : ''}>🏪 Bisnis Sampingan</option>
-            <option value="Lainnya" ${transaction.category === 'Lainnya' ? 'selected' : ''}>📦 Lainnya</option>
+            ${appState.categories.filter(c => c.type === 'income').map(c => 
+                `<option value="${c.name}" ${transaction.category === c.name ? 'selected' : ''}>${c.name}</option>`
+            ).join('')}
         `;
 
         modal.innerHTML = `
@@ -6133,6 +6141,23 @@ function initializeAppLogic() {
         updateTransactionsDisplay();
     }
 
+    // Handle date filter change
+    window.handleDateFilterChange = handleDateFilterChange;
+    async function handleDateFilterChange() {
+        const startDate = document.getElementById('start-date-filter').value;
+        const endDate = document.getElementById('end-date-filter').value;
+
+        appState.transactionManagement.startDate = startDate;
+        appState.transactionManagement.endDate = endDate;
+        appState.transactionManagement.currentPage = 1; // Reset to first page
+
+        // Reload data with the new date filters
+        await loadUserData();
+
+        // Re-render the page to show the filtered data
+        render();
+    }
+
     // Clear all filters
     window.clearTransactionFilters = clearTransactionFilters;
     function clearTransactionFilters() {
@@ -6142,7 +6167,15 @@ function initializeAppLogic() {
         }
 
         searchQuery = '';
-        setTransactionFilter('all'); // This will trigger updateTransactionsDisplay
+        // Reset date inputs and state
+        const startDateInput = document.getElementById('start-date-filter');
+        const endDateInput = document.getElementById('end-date-filter');
+        if (startDateInput) startDateInput.value = '';
+        if (endDateInput) endDateInput.value = '';
+        appState.transactionManagement.startDate = '';
+        appState.transactionManagement.endDate = '';
+
+        setTransactionFilter('all'); // This will trigger a reload and re-render
     }
 
     // Sync status notification system
