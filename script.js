@@ -282,6 +282,11 @@ function initializeAppLogic() {
         showQuickAdd: false,
         transactions: [],
         budgets: [],
+        transactionManagement: {
+            currentPage: 1,
+            transactionsPerPage: 10, // Show 10 transactions per page
+            totalTransactions: 0
+        },
         goals: [],
         receivables: [],
         debts: [], // 1. State for Debts
@@ -436,13 +441,16 @@ function initializeAppLogic() {
         },
 
         // Transaction functions
-        async getTransactions(userId) {
-            const { data, error } = await supabase
+        async getTransactions(userId, page = 1, perPage = 10) {
+            const from = (page - 1) * perPage;
+            const to = from + perPage - 1;
+            const { data, error, count } = await supabase
                 .from('transactions')
-                .select('*')
+                .select('*', { count: 'exact' })
                 .eq('user_id', userId)
-                .order('date', { ascending: false });
-            return { data, error };
+                .order('date', { ascending: false })
+                .range(from, to);
+            return { data, error, count };
         },
         
         async createTransaction(transactionData) {
@@ -689,31 +697,7 @@ function initializeAppLogic() {
             console.log('✅ Logout successful.');
             render(); // Directly re-render the app, which will show the login page
         },
-        init: async () => {
-            // Cek sesi aktif dari Supabase saat aplikasi dimuat
-            if (useSupabase) {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) {
-                    console.error("Error getting session:", error);
-                    return;
-                }
-
-                if (session && session.user) {
-                    console.log('✅ Sesi aktif ditemukan untuk:', session.user.email);
-                    // Ambil data profil lengkap dari tabel 'users' kita
-                    const { data: dbUser, error: userError } = await api.getUserByEmail(session.user.email);
-                    if (userError || !dbUser) {
-                        console.warn('Sesi Supabase ada, tapi user tidak ditemukan di tabel "users". Logout paksa.');
-                        await supabase.auth.signOut();
-                        return;
-                    }
-                    appState.user = dbUser; // Set user di state aplikasi
-                    await loadUserData(); // Muat data spesifik user
-                } else {
-                    console.log('ⓘ Tidak ada sesi aktif. Menampilkan halaman login.');
-                }
-            }
-        },
+        init: async () => {},
         setPin: async (newPin) => {
             if (!appState.user) return false;
             
@@ -788,14 +772,16 @@ function initializeAppLogic() {
         try {
             console.log('🔄 Loading data from Supabase...');
             
+            const { currentPage, transactionsPerPage } = appState.transactionManagement;
+
             const [
-                { data: transactions, error: transError },
+                { data: transactions, error: transError, count: transCount },
                 { data: budgets, error: budgetError },
                 { data: goals, error: goalError },
                 { data: receivables, error: receivableError },
                 { data: debts, error: debtError }
             ] = await Promise.all([
-                api.getTransactions(userId),
+                api.getTransactions(userId, currentPage, transactionsPerPage),
                 api.getBudgets(userId),
                 api.getGoals(userId),
                 api.getReceivables(userId),
@@ -808,6 +794,7 @@ function initializeAppLogic() {
 
             appState.transactions = transactions || [];
             appState.budgets = budgets || [];
+            appState.transactionManagement.totalTransactions = transCount || 0;
             appState.goals = goals || [];
             appState.receivables = receivables || [];
             appState.debts = debts || [];
@@ -1395,7 +1382,7 @@ function initializeAppLogic() {
             case 'user-management':
                 if (appState.user?.role === 'admin') { return renderUserManagement(); } else { return renderOverviewPage(); }
             case 'system-reports':
-                return appState.user?.role === 'admin' ? renderSystemReports() : renderOverviewPage(); // This will now handle async rendering
+                return appState.user?.role === 'admin' ? renderSystemReports() : renderOverviewPage();
             default:
                 return renderOverviewPage();
         }
@@ -1757,11 +1744,56 @@ function initializeAppLogic() {
 
                 <div class="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
                     <div id="transactions-container">
+                        {/* Konten akan dirender oleh updateTransactionsDisplay */}
                         ${renderTransactionsList(appState.transactions)}
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    async function navigateToTransactionPage(page) {
+        const { totalTransactions, transactionsPerPage } = appState.transactionManagement;
+        const totalPages = Math.ceil(totalTransactions / transactionsPerPage);
+
+        if (page < 1 || page > totalPages) return;
+
+        appState.transactionManagement.currentPage = page;
+
+        // Tampilkan loading spinner
+        const container = document.getElementById('transactions-container');
+        if (container) container.innerHTML = `<div class="text-center p-8"><i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i></div>`;
+
+        // Ambil data baru dari API
+        const { data, error, count } = await api.getTransactions(appState.user.id, page, transactionsPerPage);
+        if (error) {
+            showSyncStatus('error', 'Gagal memuat halaman transaksi.');
+            return;
+        }
+
+        appState.transactions = data || [];
+        appState.transactionManagement.totalTransactions = count || 0;
+
+        // Render ulang hanya bagian list transaksi dan kontrol pagination
+        updateTransactionsDisplay();
+    }
+
+    function renderTransactionPaginationControls() {
+        const { currentPage, transactionsPerPage, totalTransactions } = appState.transactionManagement;
+        const totalPages = Math.ceil(totalTransactions / transactionsPerPage);
+
+        if (totalPages <= 1) return '';
+
+        return `
+            <div class="flex items-center justify-between gap-4 p-4 sm:p-6 border-t border-gray-200/50 dark:border-slate-700/50">
+                <span class="text-sm text-gray-600 dark:text-gray-400">
+                    Halaman <strong>${currentPage}</strong> dari <strong>${totalPages}</strong>
+                </span>
+                <div class="flex items-center space-x-2">
+                    <button onclick="navigateToTransactionPage(${currentPage - 1})" class="px-4 py-2 text-sm font-semibold rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Sebelumnya</button>
+                    <button onclick="navigateToTransactionPage(${currentPage + 1})" class="px-4 py-2 text-sm font-semibold rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50" ${currentPage >= totalPages ? 'disabled' : ''}>Berikutnya &raquo;</button>
+                </div>
+            </div>`;
     }
 
     function renderBudgetsPage() {
@@ -3413,7 +3445,7 @@ function initializeAppLogic() {
         let totalUsers = appState.userManagement.totalUsers || 0;
         let totalTransactions = 0;
         let totalAmount = 0;
-        
+
         // Simulasi data agregat, idealnya ini dari endpoint Supabase khusus admin
         appState.transactions.forEach(user => {
             const userTransactions = []; // Placeholder
@@ -3436,7 +3468,7 @@ function initializeAppLogic() {
                         <span class="text-sm text-yellow-700 font-medium">Sistem Aktif</span>
                     </div>
                 </div>
-                
+
                 <!-- Admin Statistics -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group">
@@ -3451,7 +3483,7 @@ function initializeAppLogic() {
                             <p class="text-xs text-blue-500 mt-1">Pengguna aktif</p>
                         </div>
                     </div>
-                    
+
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group">
                         <div class="flex items-center justify-between mb-4">
                             <div class="bg-gradient-to-br from-green-400 to-emerald-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
@@ -3464,7 +3496,7 @@ function initializeAppLogic() {
                             <p class="text-xs text-green-500 mt-1">Semua pengguna</p>
                         </div>
                     </div>
-                    
+
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group">
                         <div class="flex items-center justify-between mb-4">
                             <div class="bg-gradient-to-br from-purple-400 to-pink-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
@@ -3477,7 +3509,7 @@ function initializeAppLogic() {
                             <p class="text-xs text-purple-500 mt-1">Nilai transaksi</p>
                         </div>
                     </div>
-                    
+
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group">
                         <div class="flex items-center justify-between mb-4">
                             <div class="bg-gradient-to-br from-orange-400 to-red-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
@@ -3508,7 +3540,7 @@ function initializeAppLogic() {
                             <h4 class="font-semibold text-gray-800 text-sm sm:text-base mb-1">Kelola Pengguna</h4>
                             <p class="text-xs sm:text-sm text-gray-500 text-center">Lihat dan kelola semua pengguna</p>
                         </button>
-                        
+
                         <button onclick="navigateTo('system-reports')" class="flex flex-col items-center p-4 sm:p-6 bg-white/50 rounded-2xl border border-white/30 hover:bg-white/70 transition-all duration-300 group">
                             <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mb-3 sm:mb-4 shadow-lg group-hover:scale-110 transition-transform">
                                 <i class="fas fa-chart-area text-white text-lg sm:text-xl"></i>
@@ -3516,7 +3548,7 @@ function initializeAppLogic() {
                             <h4 class="font-semibold text-gray-800 text-sm sm:text-base mb-1">Laporan Sistem</h4>
                             <p class="text-xs sm:text-sm text-gray-500 text-center">Analisis mendalam sistem</p>
                         </button>
-                        
+
                         <button onclick="exportAllData()" class="flex flex-col items-center p-4 sm:p-6 bg-white/50 rounded-2xl border border-white/30 hover:bg-white/70 transition-all duration-300 group">
                             <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mb-3 sm:mb-4 shadow-lg group-hover:scale-110 transition-transform">
                                 <i class="fas fa-download text-white text-lg sm:text-xl"></i>
@@ -3537,9 +3569,7 @@ function initializeAppLogic() {
         const placeholder = `
             <div class="text-center p-12">
                 <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-                    <i class="fas fa-spinner fa-spin text-4xl text-indigo-500"></i>
-                    <p class="mt-4 text-gray-600">Memuat data pengguna dari database...</p>
-                </div>
+                <p class="mt-4 text-gray-600">Memuat data pengguna dari database...</p>
             </div>
         `;
 
@@ -3548,7 +3578,7 @@ function initializeAppLogic() {
             let usersOnPage = [];
             let errorState = null;
             const { currentPage, usersPerPage } = appState.userManagement;
-            
+
             if (useSupabase) {
                 try {
                     const { data: supabaseUsers, error, count } = await api.getAllUsers(currentPage, usersPerPage);
@@ -3570,7 +3600,7 @@ function initializeAppLogic() {
             }
 
             const totalUsers = appState.userManagement.totalUsers; // Ambil total user terbaru
-            
+
             // Konten utama halaman, tidak termasuk placeholder
             const mainContent = `
             <div class="space-y-6 sm:space-y-8">
@@ -3587,7 +3617,7 @@ function initializeAppLogic() {
                         <span class="text-sm sm:text-base">Tambah User</span>
                     </button>
                 </div>
-                
+
                 <!-- User Statistics -->
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 sm:gap-6">
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
@@ -3601,7 +3631,7 @@ function initializeAppLogic() {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
                         <div class="flex items-center justify-between">
                             <div>
@@ -3613,7 +3643,7 @@ function initializeAppLogic() {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
                         <div class="flex items-center justify-between">
                             <div>
@@ -3625,7 +3655,7 @@ function initializeAppLogic() {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20">
                         <div class="flex items-center justify-between">
                             <div>
@@ -3638,7 +3668,7 @@ function initializeAppLogic() {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden">
                     <div class="p-6 sm:p-8">
                         <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-6 flex items-center">
@@ -3647,7 +3677,7 @@ function initializeAppLogic() {
                             </div>
                             Daftar Pengguna
                         </h3>
-                        
+
                         <div class="space-y-4">
                             ${usersOnPage.map(user => {
                                 const { id: userId, email, role, name, transaction_count, budget_count, goal_count, total_volume } = user;
@@ -3657,10 +3687,10 @@ function initializeAppLogic() {
                                 const userGoalsCount = goal_count || 0;
                                 const totalAmount = total_volume || 0;
                                 const hasPin = !!user.pin;
-                                
+
                                 const isAdminUser = role === 'admin';
                                 const isDefaultUser = ['demo@frugal.com', 'user@example.com', 'test@budget.com'].includes(email);
-                                
+
                                 return `
                                     <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300">
                                         <div class="flex flex-col gap-4 sm:gap-6">
@@ -3673,10 +3703,10 @@ function initializeAppLogic() {
                                                     <div>
                                                         <div class="flex items-center space-x-2">
                                                             <h4 class="font-semibold text-gray-800 text-sm sm:text-base">${email}</h4>
-                                                            ${email === 'admin@frugal.com' ? 
-                                                                '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-bold">👑 Admin Utama</span>' : 
-                                                                isDefaultUser ? 
-                                                                '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Default</span>' : 
+                                                            ${email === 'admin@frugal.com' ?
+                                                                '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-bold">👑 Admin Utama</span>' :
+                                                                isDefaultUser ?
+                                                                '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Default</span>' :
                                                                 '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Custom</span>'}
                                                             ${hasPin ? '<i class="fas fa-lock text-green-500 text-xs" title="PIN Protected"></i>' : '<i class="fas fa-unlock text-red-500 text-xs" title="No PIN"></i>'}
                                                         </div>
@@ -3694,7 +3724,7 @@ function initializeAppLogic() {
                                                     <p class="text-xs text-gray-400 mt-1">Bergabung: ${new Date(user.created_at).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}</p>
                                                 </div>
                                             </div>
-                                            
+
                                             <!-- Action Buttons -->
                                             <div class="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100">
                                                 <button onclick="viewUserDetails('${email}')" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
@@ -3757,16 +3787,16 @@ function initializeAppLogic() {
                     Menampilkan <strong>${(currentPage - 1) * usersPerPage + 1}</strong>-<strong>${Math.min(currentPage * usersPerPage, totalUsers)}</strong> dari <strong>${totalUsers}</strong>
                 </span>
                 <div class="flex items-center space-x-2">
-                    <button 
-                        onclick="navigateToUserPage(${currentPage - 1})" 
+                    <button
+                        onclick="navigateToUserPage(${currentPage - 1})"
                         class="px-4 py-2 text-sm font-semibold rounded-xl bg-white/80 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600"
                         ${currentPage === 1 ? 'disabled' : ''}
                     >
                         &laquo; Sebelumnya
                     </button>
                     <span class="px-4 py-2 text-sm font-bold text-gray-700 bg-gray-100 rounded-xl dark:bg-slate-700 dark:text-gray-200">${currentPage} / ${totalPages}</span>
-                    <button 
-                        onclick="navigateToUserPage(${currentPage + 1})" 
+                    <button
+                        onclick="navigateToUserPage(${currentPage + 1})"
                         class="px-4 py-2 text-sm font-semibold rounded-xl bg-white/80 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600"
                         ${currentPage >= totalPages ? 'disabled' : ''}
                     >
@@ -3782,7 +3812,7 @@ function initializeAppLogic() {
         const totalPages = Math.ceil(totalUsers / usersPerPage);
 
         // Mencegah navigasi ke halaman yang tidak valid
-        if (page < 1 || (totalPages > 0 && page > totalPages)) return;
+        if (page < 1 || page > totalPages) return;
 
         appState.userManagement.currentPage = page;
 
@@ -3822,9 +3852,9 @@ function initializeAppLogic() {
                 </div>
             </div>`;
 
-        (async () => {
+        const renderContent = async () => {
             const pageContent = document.getElementById('page-content');
-            
+
             // Fetch all required data in parallel
             const [
                 { data: stats, error: statsError },
@@ -3841,7 +3871,7 @@ function initializeAppLogic() {
             if (statsError || topUsersError || userGrowthError || transactionsError) {
                 console.error('Failed to fetch system reports data:', { statsError, topUsersError, userGrowthError, transactionsError });
                 showSyncStatus('error', 'Gagal memuat data laporan sistem.');
-                if (pageContent) pageContent.innerHTML = `<div class="text-center p-12 text-red-500">Gagal memuat data. Coba lagi nanti.</div>`;
+                if (pageContainer) pageContainer.innerHTML = `<div class="text-center p-12 text-red-500">Gagal memuat data. Coba lagi nanti.</div>`;
                 return;
             }
 
@@ -3887,7 +3917,7 @@ function initializeAppLogic() {
                             <p class="text-gray-600 text-sm sm:text-base mt-1">Analisis mendalam performa dan penggunaan sistem</p>
                         </div>
                     </div>
-                    
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                         <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Total Pengguna</p><p class="text-3xl font-bold text-blue-600">${totalUsers}</p></div>
                         <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Total Transaksi</p><p class="text-3xl font-bold text-green-600">${totalTransactions.toLocaleString('id-ID')}</p></div>
@@ -3918,15 +3948,17 @@ function initializeAppLogic() {
                         </div>
                     </div>
                 </div>`;
-            
-            if (pageContent) pageContent.innerHTML = content;
-        })();
 
+            if (pageContainer) pageContainer.innerHTML = content;
+        };
+
+        renderContent();
         return placeholder;
     }
 
     // Event Handlers
     // Expose functions to the global scope for inline onclick attributes
+    window.navigateToTransactionPage = navigateToTransactionPage;
     window.handleLogin = handleLogin;
     window.navigateToUserPage = navigateToUserPage;
     window.quickLogin = quickLogin;
@@ -3934,13 +3966,13 @@ function initializeAppLogic() {
         const email = document.getElementById('email-input').value;
         const errorDiv = document.getElementById('error-message');
         const errorText = document.getElementById('error-text');
-        
+
         if (!email) {
             errorText.textContent = 'Silakan masukkan alamat email';
             errorDiv.classList.remove('hidden');
             return;
         }
-        
+
         const result = await auth.login(email);
         
         if (result.success) {
@@ -3962,7 +3994,7 @@ function initializeAppLogic() {
 
         const result = await auth.login(email);
         console.log('📋 Login result:', result);
-        
+
         if (result.success) {
             await loadUserData();
             render();
@@ -4008,7 +4040,7 @@ function initializeAppLogic() {
                             </div>
                         `}
                     </div>
-                    
+
                     <form onsubmit="handlePinLogin(event, '${email}')" class="space-y-6">
                         <div class="relative">
                             <label class="block text-sm font-bold text-gray-700 mb-3 text-center">PIN Keamanan (6 digit)</label>
@@ -4033,14 +4065,14 @@ function initializeAppLogic() {
                                 PIN Anda aman dan terenkripsi
                             </p>
                         </div>
-                        
+
                         <div id="pin-error" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl">
                             <div class="flex items-center">
                                 <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>
                                 <span class="text-sm">PIN yang Anda masukkan salah</span>
                             </div>
                         </div>
-                        
+
                         <div class="flex space-x-3">
                             <button
                                 type="submit"
@@ -4062,7 +4094,7 @@ function initializeAppLogic() {
                             </button>
                         </div>
                     </form>
-                    
+
                     <!-- Quick PIN buttons -->
                     <div class="mt-6 pt-6 border-t border-gray-200">
                         <p class="text-xs text-gray-500 text-center mb-3">Quick Access:</p>
@@ -4077,7 +4109,7 @@ function initializeAppLogic() {
                     </div>
                 </div>
             </div>
-            
+
             <style>
                 @keyframes fadeIn {
                     from { opacity: 0; }
@@ -4085,11 +4117,11 @@ function initializeAppLogic() {
                 }
                 
                 @keyframes slideUp {
-                    from { 
+                    from {
                         opacity: 0;
                         transform: translateY(50px) scale(0.9);
                     }
-                    to { 
+                    to {
                         opacity: 1;
                         transform: translateY(0) scale(1);
                     }
@@ -4105,7 +4137,7 @@ function initializeAppLogic() {
             </style>
         `;
         document.body.appendChild(modal);
-        
+
         // Focus on PIN input after animation
         setTimeout(() => {
             document.getElementById('modal-pin-input').focus();
@@ -4117,13 +4149,13 @@ function initializeAppLogic() {
         const pin = document.getElementById('modal-pin-input').value;
         const errorDiv = document.getElementById('pin-error');
         const submitButton = event.target.querySelector('button[type="submit"]');
-        
+
         if (!pin || pin.length !== 6) {
             errorDiv.querySelector('span').textContent = 'PIN harus 6 digit angka';
             errorDiv.classList.remove('hidden');
             return;
         }
-        
+
         // Show loading state and disable button
         const originalButtonContent = submitButton.innerHTML;
         submitButton.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Mengecek & Sinkronisasi...`;
@@ -4131,7 +4163,7 @@ function initializeAppLogic() {
         errorDiv.classList.add('hidden');
 
         const result = await auth.login(email, pin);
-        
+
         // Restore button state
         submitButton.innerHTML = originalButtonContent;
         submitButton.disabled = false;
@@ -4143,7 +4175,7 @@ function initializeAppLogic() {
         } else {
             errorDiv.querySelector('span').textContent = result.error || 'PIN yang Anda masukkan salah';
             errorDiv.classList.remove('hidden');
-            
+
             // Shake animation for wrong PIN
             const input = document.getElementById('modal-pin-input');
             input.style.animation = 'shake 0.5s ease-in-out';
@@ -4208,7 +4240,7 @@ function initializeAppLogic() {
         const expenseBtn = document.getElementById('expense-btn');
         const incomeBtn = document.getElementById('income-btn');
         const categorySelect = document.getElementById('quick-category');
-        
+
         if (type === 'expense') {
             expenseBtn.className = 'flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-300 relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg transform scale-105';
             incomeBtn.className = 'flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-300 text-gray-600 hover:text-gray-800';
@@ -4241,7 +4273,7 @@ function initializeAppLogic() {
     window.handleQuickAdd = handleQuickAdd;
     function handleQuickAdd(event) {
         event.preventDefault();
-        
+
         const transaction = {
             type: currentTransactionType,
             amount: parseFloat(document.getElementById('quick-amount').value) / 1000,
@@ -4249,7 +4281,7 @@ function initializeAppLogic() {
             description: document.getElementById('quick-description').value.trim(),
             date: document.getElementById('quick-date').value
         };
-        
+
         saveTransaction(transaction);
         appState.showQuickAdd = false;
         render();
@@ -4309,14 +4341,14 @@ function initializeAppLogic() {
     window.handleAddBudget = handleAddBudget;
     function handleAddBudget(event) {
         event.preventDefault();
-        
+
         const budget = {
             category: document.getElementById('budget-category').value.trim(),
             amount: parseFloat(document.getElementById('budget-amount').value) / 1000,
             description: document.getElementById('budget-description').value.trim(),
             period: document.getElementById('budget-period').value
         };
-        
+
         createBudget(budget);
         hideAddBudgetForm();
         // render() dipanggil di dalam createBudget
@@ -4527,14 +4559,14 @@ function initializeAppLogic() {
     window.handleAddReceivable = handleAddReceivable;
     function handleAddReceivable(event) {
         event.preventDefault(); // Corrected from event.preventDefault
-        
+
         const receivable = {
             debtor_name: document.getElementById('receivable-debtor').value.trim(),
             amount: parseFloat(document.getElementById('receivable-amount').value) / 1000,
             due_date: document.getElementById('receivable-due-date').value,
             description: document.getElementById('receivable-description').value.trim()
-        }; 
-        
+        };
+
         createReceivable(receivable); // Changed from saveReceivable to match convention
         hideAddReceivableForm();
     }
@@ -4562,12 +4594,12 @@ function initializeAppLogic() {
 
     async function saveDebt(debt) { // Renamed from createDebt
         if (!appState.user) return;
-        
+
         debt.id = Date.now();
         debt.user_id = appState.user.id;
         debt.status = 'unpaid';
         debt.created_at = new Date().toISOString();
-        
+
         try {
             if (useSupabase) {
                 const { data, error } = await api.createDebt(debt);
@@ -4588,12 +4620,12 @@ function initializeAppLogic() {
 
     async function createReceivable(receivable) { // Renamed from saveReceivable
         if (!appState.user) return;
-        
+
         receivable.id = Date.now();
         receivable.user_id = appState.user.id;
         receivable.status = 'unpaid';
         receivable.created_at = new Date().toISOString();
-        
+
         try {
             if (useSupabase) {
                 const { data, error } = await api.createReceivable(receivable);
@@ -4609,7 +4641,7 @@ function initializeAppLogic() {
         } catch (error) {
             console.error('Error creating receivable:', error);
             showSyncStatus('error', 'Gagal mencatat piutang');
-        } 
+        }
     }
 
     window.showEditTransactionModal = showEditTransactionModal;
@@ -4623,7 +4655,7 @@ function initializeAppLogic() {
         const modal = document.createElement('div');
         modal.id = 'edit-transaction-modal';
         modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center p-4 z-50 animate-fadeIn';
-        
+
         const isExpense = transaction.type === 'expense';
 
         const expenseCategories = `
@@ -4743,14 +4775,14 @@ function initializeAppLogic() {
     window.handleAddGoal = handleAddGoal;
     function handleAddGoal(event) {
         event.preventDefault();
-        
+
         const goal = {
             title: document.getElementById('goal-title').value.trim(),
             target_amount: parseFloat(document.getElementById('goal-target').value) / 1000,
             current_amount: parseFloat(document.getElementById('goal-current').value || 0) / 1000,
             deadline: document.getElementById('goal-deadline').value
         };
-        
+
         createGoal(goal);
         hideAddGoalForm();
     }
@@ -4782,7 +4814,7 @@ function initializeAppLogic() {
             description: `Menabung untuk: ${goal.title}`,
             date: new Date().toISOString().split('T')[0]
         };
-        
+
         // Update goal and save transaction
         updateGoal(goalId, { current_amount: newCurrentAmount });
         saveTransaction(transaction);
@@ -5227,7 +5259,7 @@ function initializeAppLogic() {
             
             // Apply theme immediately
             applyTheme(theme);
-            
+
             showSyncStatus('success', 'Pengaturan profil berhasil disimpan!');
         }
     }
@@ -5235,7 +5267,7 @@ function initializeAppLogic() {
     window.exportData = exportData;
     function exportData() {
         if (!appState.user) return;
-        
+
         const data = {
             user: appState.user,
             profile: appState.profile,
@@ -5248,7 +5280,7 @@ function initializeAppLogic() {
             },
             exportDate: new Date().toISOString()
         };
-        
+
         // Export transactions to CSV
         const csvContent = "data:text/csv;charset=utf-8," + transactionsToCSV(appState.transactions);
         const encodedUri = encodeURI(csvContent);
@@ -5264,7 +5296,7 @@ function initializeAppLogic() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         showSyncStatus('success', 'Data CSV & JSON berhasil diekspor!');
     }
 
@@ -5329,7 +5361,7 @@ function initializeAppLogic() {
             const lines = csv.split('\n').filter(l => l.trim() !== '');
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
             const requiredHeaders = ['date', 'type', 'category', 'amount', 'description'];
-            
+
             if (!requiredHeaders.every(h => headers.includes(h))) {
                 showSyncStatus('error', 'Format CSV salah. Pastikan ada kolom: ' + requiredHeaders.join(', '));
                 return;
@@ -5342,7 +5374,7 @@ function initializeAppLogic() {
                 headers.forEach((header, index) => {
                     transaction[header] = values[index];
                 });
-                
+
                 // Basic validation
                 if (transaction.date && transaction.type && transaction.amount) {
                     transactionsToImport.push({
@@ -5380,7 +5412,7 @@ function initializeAppLogic() {
             showSyncStatus('error', 'Akses ditolak. Hanya admin yang dapat mengekspor semua data.');
             return;
         }
-        
+
         // Get all users dynamically
         const allUsers = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -5396,7 +5428,7 @@ function initializeAppLogic() {
             }
         }
         const allData = {};
-        
+
         allUsers.forEach(email => {
             const userId = email.replace(/[@.]/g, '_');
             allData[email] = {
@@ -5405,13 +5437,13 @@ function initializeAppLogic() {
                 goals: JSON.parse(localStorage.getItem(`goals_${userId}`) || '[]')
             };
         });
-        
+
         const exportData = {
             exportDate: new Date().toISOString(),
             exportedBy: appState.user.email,
             users: allData
         };
-        
+
         const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -5421,7 +5453,7 @@ function initializeAppLogic() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         showSyncStatus('success', 'Semua data sistem berhasil diekspor!');
     }
 
@@ -5432,7 +5464,7 @@ function initializeAppLogic() {
             showSyncStatus('error', 'Akses ditolak. Hanya admin yang dapat menambah user.');
             return;
         }
-        
+
         const modal = document.createElement('div');
         modal.innerHTML = `
             <div class="fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center p-4 z-50 animate-fadeIn">
@@ -5444,7 +5476,7 @@ function initializeAppLogic() {
                         <h3 class="text-xl font-bold text-gray-800 mb-2">👥 Tambah User Baru</h3>
                         <p class="text-gray-600 text-sm">Buat akun pengguna baru untuk sistem</p>
                     </div>
-                    
+
                     <form onsubmit="handleAddUser(event)" class="space-y-6">
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-3">Email Pengguna</label>
@@ -5456,7 +5488,7 @@ function initializeAppLogic() {
                                 required
                             />
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-3">PIN Default (6 digit)</label>
                             <input
@@ -5471,7 +5503,7 @@ function initializeAppLogic() {
                             />
                             <p class="text-xs text-gray-500 mt-2">User dapat mengubah PIN setelah login pertama</p>
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-3">Nama Lengkap (Opsional)</label>
                             <input
@@ -5481,7 +5513,7 @@ function initializeAppLogic() {
                                 class="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 font-medium"
                             />
                         </div>
-                        
+
                         <div class="flex space-x-3">
                             <button
                                 type="submit"
@@ -5508,31 +5540,31 @@ function initializeAppLogic() {
     window.handleAddUser = handleAddUser;
     async function handleAddUser(event) {
         event.preventDefault();
-        
+
         const email = document.getElementById('new-user-email').value;
         const pin = document.getElementById('new-user-pin').value;
         const name = document.getElementById('new-user-name').value;
-        
+
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             showSyncStatus('error', 'Format email tidak valid!');
             return;
         }
-        
+
         // Check if user already exists
         const userId = email.replace(/[@.]/g, '_');
         if (localStorage.getItem(`pin_${userId}`)) {
             showSyncStatus('error', 'User dengan email ini sudah ada!');
             return;
         }
-        
+
         // Validate PIN
         if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
             showSyncStatus('error', 'PIN harus 6 digit angka!');
             return;
         }
-        
+
         try {
             const hashedPin = await hasher.hashPin(pin, userId); // Hash PIN
 
@@ -5575,7 +5607,7 @@ function initializeAppLogic() {
                 if (appState.user?.role !== 'admin') return;
                 const userId = email.replace(/[@.]/g, '_');
                 const pin = '000000';
-                
+
                 try {
                     const hashedPin = await hasher.hashPin(pin, userId);
 
@@ -5599,7 +5631,7 @@ function initializeAppLogic() {
             showSyncStatus('error', 'Akses ditolak. Hanya admin yang dapat export data user.');
             return;
         }
-        
+
         const userId = email.replace(/[@.]/g, '_');
         const userData = {
             email: email,
@@ -5610,7 +5642,7 @@ function initializeAppLogic() {
             exportDate: new Date().toISOString(),
             exportedBy: appState.user.email
         };
-        
+
         const blob = new Blob([JSON.stringify(userData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -5620,7 +5652,7 @@ function initializeAppLogic() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         showSyncStatus('success', `Data user ${email} berhasil diekspor!`);
     }
 
@@ -5630,7 +5662,7 @@ function initializeAppLogic() {
             showSyncStatus('error', 'Akses ditolak. Hanya admin yang dapat menghapus user.');
             return;
         }
-        
+
         const isAdminUser = email === 'admin@frugal.com';
         if (isAdminUser) {
             showSyncStatus('error', 'Akun admin utama tidak dapat dihapus!');
@@ -5642,7 +5674,7 @@ function initializeAppLogic() {
             showSyncStatus('error', 'User default tidak dapat dihapus!');
             return;
         }
-        
+
         showConfirmModal({
             title: 'Hapus Pengguna?',
             message: `PERINGATAN!\n\nAnda akan menghapus pengguna ${email} dan SEMUA datanya secara permanen.\n\nTindakan ini tidak dapat dibatalkan.`,
@@ -5651,7 +5683,7 @@ function initializeAppLogic() {
             onConfirm: async () => {
                 if (appState.user?.role !== 'admin') return;
                 const userId = email.replace(/[@.]/g, '_');
-                
+
                 // Remove user from Supabase
                 if (useSupabase) {
                     const { error } = await api.deleteUser(userId);
@@ -5661,7 +5693,7 @@ function initializeAppLogic() {
                         // Note: We don't rollback a delete action.
                     }
                 }
-                
+
                 showSyncStatus('success', `User ${email} dan semua datanya berhasil dihapus!`);
                 render(); // Refresh the user list
             }
@@ -5686,7 +5718,7 @@ function initializeAppLogic() {
             confirmText: 'Ya, Jadikan Admin',
             onConfirm: async () => {
                 const userId = email.replace(/[@.]/g, '_');
-                
+
                 if (useSupabase) {
                     console.log(`👑 Promoting user ${email} to admin...`);
                     const { data, error } = await api.updateUser(userId, { role: 'admin' });
@@ -5697,7 +5729,7 @@ function initializeAppLogic() {
                     } else {
                         console.log('✅ User role updated in Supabase:', data);
                         showSyncStatus('success', `Peran untuk ${email} berhasil diubah menjadi admin!`);
-                        render(); 
+                        render();
                     }
                 } else {
                     showSyncStatus('error', 'Fitur ini memerlukan koneksi Supabase.');
@@ -5725,7 +5757,7 @@ function initializeAppLogic() {
             showSyncStatus('error', 'Email dan PIN harus diisi untuk generate hash.');
             return;
         }
-        
+
         if (pin.length !== 6) {
             showSyncStatus('error', 'PIN harus 6 digit.');
             return;
@@ -5734,10 +5766,10 @@ function initializeAppLogic() {
         try {
             const userId = email.replace(/[@.]/g, '_'); // The salt is the user ID derived from the email
             const hashedPin = await hasher.hashPin(pin, userId);
-            
+
             outputElement.textContent = hashedPin;
             outputContainer.classList.remove('hidden');
-            
+
             showSyncStatus('success', 'Hash berhasil digenerate!');
         } catch (error) {
             console.error('Error generating manual hash:', error);
@@ -5767,18 +5799,21 @@ function initializeAppLogic() {
     }
 
     window.viewUserDetails = viewUserDetails;
-    function viewUserDetails(email) {
-        const userId = email.replace(/[@.]/g, '_');
-        const userTransactions = JSON.parse(localStorage.getItem(`transactions_${userId}`) || '[]');
-        const userBudgets = JSON.parse(localStorage.getItem(`budgets_${userId}`) || '[]');
-        const userGoals = JSON.parse(localStorage.getItem(`goals_${userId}`) || '[]'); // This part is now problematic as localStorage is removed.
-        const userProfile = JSON.parse(localStorage.getItem(`profile_${userId}`) || '{}');
-        const hasPin = !!localStorage.getItem(`pin_${userId}`);
-        
-        const totalIncome = userTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-        const totalExpense = userTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    async function viewUserDetails(email) {
+        // Fetch user details directly from the database view
+        const { data: user, error } = await supabase.from('users_with_stats').select('*').eq('email', email).single();
+
+        if (error || !user) {
+            showSyncStatus('error', 'Gagal mengambil detail pengguna.');
+            console.error("Error fetching user details:", error);
+            return;
+        }
+
+        // Use the aggregated data from the view
+        const totalIncome = user.total_income || 0;
+        const totalExpense = user.total_expense || 0;
         const balance = totalIncome - totalExpense;
-        
+
         const modal = document.createElement('div');
         modal.innerHTML = `
             <div class="fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center p-4 z-50 animate-fadeIn">
@@ -5793,44 +5828,44 @@ function initializeAppLogic() {
                                 <p class="text-gray-600 text-sm">Detail Pengguna & Aktivitas</p>
                             </div>
                         </div>
-                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 p-2 rounded-xl hover:bg-gray-100 transition-all duration-300">
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-300">
                             <i class="fas fa-times text-xl"></i>
                         </button>
                     </div>
-                    
+
                     <!-- User Stats -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                         <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-2xl border border-green-200">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-xs font-medium text-green-600 mb-1">Total Pemasukan</p>
-                                    <p class="text-lg font-bold text-green-700">Rp ${totalIncome.toLocaleString('id-ID')}</p>
+                                    <p class="text-xs font-medium text-green-600 mb-1">Total Volume</p>
+                                    <p class="text-lg font-bold text-green-700">Rp ${(user.total_volume || 0).toLocaleString('id-ID')}</p>
                                 </div>
                                 <i class="fas fa-arrow-up text-green-500 text-xl"></i>
                             </div>
                         </div>
-                        
+
                         <div class="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-2xl border border-red-200">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-xs font-medium text-red-600 mb-1">Total Pengeluaran</p>
-                                    <p class="text-lg font-bold text-red-700">Rp ${totalExpense.toLocaleString('id-ID')}</p>
+                                    <p class="text-xs font-medium text-red-600 mb-1">Total Transaksi</p>
+                                    <p class="text-lg font-bold text-red-700">${user.transaction_count || 0}</p>
                                 </div>
                                 <i class="fas fa-arrow-down text-red-500 text-xl"></i>
                             </div>
                         </div>
-                        
+
                         <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-200">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-xs font-medium text-blue-600 mb-1">Saldo Bersih</p>
-                                    <p class="text-lg font-bold text-blue-700">Rp ${balance.toLocaleString('id-ID')}</p>
+                                    <p class="text-xs font-medium text-blue-600 mb-1">Bergabung</p>
+                                    <p class="text-lg font-bold text-blue-700">${new Date(user.created_at).toLocaleDateString('id-ID')}</p>
                                 </div>
                                 <i class="fas fa-wallet text-blue-500 text-xl"></i>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- User Info -->
                     <div class="bg-gray-50 rounded-2xl p-4 mb-6">
                         <h4 class="font-semibold text-gray-800 mb-3">Informasi Akun</h4>
@@ -5841,72 +5876,48 @@ function initializeAppLogic() {
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">User ID:</span>
-                                <span class="font-medium font-mono text-xs">${userId}</span>
+                                <span class="font-medium font-mono text-xs">${user.id}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Nama:</span>
-                                <span class="font-medium">${userProfile.name || 'Tidak diset'}</span>
+                                <span class="font-medium">${user.name || 'Tidak diset'}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Keamanan PIN:</span>
-                                <span class="font-medium ${hasPin ? 'text-green-600' : 'text-red-600'}">
-                                    ${hasPin ? '🔒 Aktif' : '🔓 Tidak aktif'}
+                                <span class="font-medium ${user.pin ? 'text-green-600' : 'text-red-600'}">
+                                    ${user.pin ? '🔒 Aktif' : '🔓 Tidak aktif'}
                                 </span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Mata Uang:</span>
-                                <span class="font-medium">${userProfile.currency || 'IDR'}</span>
+                                <span class="font-medium">${user.currency || 'IDR'}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Tema:</span>
-                                <span class="font-medium capitalize">${userProfile.theme || 'Light'}</span>
+                                <span class="font-medium capitalize">${user.theme || 'Light'}</span>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Activity Summary -->
                     <div class="bg-gray-50 rounded-2xl p-4">
                         <h4 class="font-semibold text-gray-800 mb-3">Ringkasan Aktivitas</h4>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                             <div class="text-center p-3 bg-white rounded-xl">
-                                <div class="text-2xl font-bold text-blue-600">${userTransactions.length}</div>
+                                <div class="text-2xl font-bold text-blue-600">${user.transaction_count || 0}</div>
                                 <div class="text-gray-600">Transaksi</div>
                             </div>
                             <div class="text-center p-3 bg-white rounded-xl">
-                                <div class="text-2xl font-bold text-green-600">${userBudgets.length}</div>
+                                <div class="text-2xl font-bold text-green-600">${user.budget_count || 0}</div>
                                 <div class="text-gray-600">Anggaran</div>
                             </div>
                             <div class="text-center p-3 bg-white rounded-xl">
-                                <div class="text-2xl font-bold text-purple-600">${userGoals.length}</div>
+                                <div class="text-2xl font-bold text-purple-600">${user.goal_count || 0}</div>
                                 <div class="text-gray-600">Target</div>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Recent Transactions -->
-                    ${userTransactions.length > 0 ? `
-                        <div class="mt-6">
-                            <h4 class="font-semibold text-gray-800 mb-3">Transaksi Terbaru</h4>
-                            <div class="space-y-2 max-h-40 overflow-y-auto">
-                                ${userTransactions.slice(-5).reverse().map(t => `
-                                    <div class="flex items-center justify-between p-3 bg-white rounded-xl border">
-                                        <div class="flex items-center space-x-3">
-                                            <div class="w-8 h-8 bg-gradient-to-br from-${t.type === 'income' ? 'green' : 'red'}-400 to-${t.type === 'income' ? 'emerald' : 'rose'}-500 rounded-xl flex items-center justify-center">
-                                                <i class="fas fa-${t.type === 'income' ? 'arrow-up' : 'arrow-down'} text-white text-xs"></i>
-                                            </div>
-                                            <div>
-                                                <p class="font-medium text-gray-800 text-sm">${t.description}</p>
-                                                <p class="text-xs text-gray-500">${t.category} • ${new Date(t.date).toLocaleDateString('id-ID')}</p>
-                                            </div>
-                                        </div>
-                                        <span class="font-bold text-${t.type === 'income' ? 'green' : 'red'}-600 text-sm">
-                                            ${t.type === 'income' ? '+' : '-'}Rp ${t.amount.toLocaleString('id-ID')}
-                                        </span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
+
                 </div>
             </div>
         `;
@@ -6041,12 +6052,12 @@ function initializeAppLogic() {
     // Filter transactions based on search and filter criteria
     function getFilteredTransactions() {
         let filtered = [...appState.transactions];
-        
+
         // Apply type filter
         if (transactionFilter !== 'all') {
             filtered = filtered.filter(t => t.type === transactionFilter);
         }
-        
+
         // Apply search query
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase().trim();
@@ -6057,7 +6068,7 @@ function initializeAppLogic() {
                 new Date(t.date).toLocaleDateString('id-ID').includes(query)
             );
         }
-        
+
         return filtered;
     }
 
@@ -6066,22 +6077,25 @@ function initializeAppLogic() {
         const container = document.getElementById('transactions-container');
         const resultsInfo = document.getElementById('search-results-info');
         const resultsCount = document.getElementById('results-count');
-        
+
         if (!container) return;
-        
+
         const filteredTransactions = getFilteredTransactions();
         container.innerHTML = renderTransactionsList(filteredTransactions);
-        
-        // Update search results info
+
+        // Update search results info and add pagination controls
         if (searchQuery.trim() || transactionFilter !== 'all') {
             const totalTransactions = appState.transactions.length;
             const filteredCount = filteredTransactions.length;
-            
+
             resultsCount.textContent = `Menampilkan ${filteredCount} dari ${totalTransactions} transaksi`;
             resultsInfo.classList.remove('hidden');
         } else {
             resultsInfo.classList.add('hidden');
         }
+
+        // Append pagination controls
+        container.insertAdjacentHTML('beforeend', renderTransactionPaginationControls());
     }
 
     // Search function
@@ -6098,7 +6112,7 @@ function initializeAppLogic() {
     window.setTransactionFilter = setTransactionFilter;
     function setTransactionFilter(filter) {
         transactionFilter = filter;
-        
+
         // Update button styles
         const buttons = ['filter-all', 'filter-income', 'filter-expense'];
         buttons.forEach(btnId => {
@@ -6108,14 +6122,14 @@ function initializeAppLogic() {
                     btn.className = 'px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg';
                 } else {
                     const baseClass = 'px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 bg-gray-200 text-gray-700';
-                    const hoverClass = btnId === 'filter-income' ? 'hover:bg-green-100 hover:text-green-700' : 
-                                     btnId === 'filter-expense' ? 'hover:bg-red-100 hover:text-red-700' : 
+                    const hoverClass = btnId === 'filter-income' ? 'hover:bg-green-100 hover:text-green-700' :
+                                     btnId === 'filter-expense' ? 'hover:bg-red-100 hover:text-red-700' :
                                      'hover:bg-indigo-100 hover:text-indigo-700';
                     btn.className = `${baseClass} ${hoverClass}`;
                 }
             }
         });
-        
+
         updateTransactionsDisplay();
     }
 
@@ -6126,9 +6140,9 @@ function initializeAppLogic() {
         if (searchInput) {
             searchInput.value = '';
         }
-        
+
         searchQuery = '';
-        setTransactionFilter('all');
+        setTransactionFilter('all'); // This will trigger updateTransactionsDisplay
     }
 
     // Sync status notification system
@@ -6137,23 +6151,23 @@ function initializeAppLogic() {
         // Remove existing notifications
         const existing = document.querySelector('.sync-notification');
         if (existing) existing.remove();
-        
+
         const notification = document.createElement('div');
         notification.className = `sync-notification fixed top-4 right-4 z-50 px-6 py-3 rounded-2xl shadow-xl transform transition-all duration-300 ${
-            type === 'success' ? 'bg-green-500 text-white' : 
-            type === 'error' ? 'bg-red-500 text-white' : 
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
             'bg-blue-500 text-white'
         }`;
-        
+
         notification.innerHTML = `
             <div class="flex items-center space-x-2">
                 <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
                 <span class="font-medium text-sm">${message}</span>
             </div>
         `;
-        
+
         document.body.appendChild(notification);
-        
+
         // Auto remove after 3 seconds
         setTimeout(() => {
             notification.style.transform = 'translateX(100%)';
@@ -6165,12 +6179,12 @@ function initializeAppLogic() {
     window.checkDataIntegrity = checkDataIntegrity;
     function checkDataIntegrity() {
         if (!appState.user) return false;
-        
+
         const userId = appState.user.id;
         const storedTransactions = localStorage.getItem(`transactions_${userId}`);
         const storedBudgets = localStorage.getItem(`budgets_${userId}`);
         const storedGoals = localStorage.getItem(`goals_${userId}`);
-        
+
         console.log('🔍 Data Integrity Check for user:', userId);
         console.log('📊 Stored Transactions:', storedTransactions ? JSON.parse(storedTransactions).length : 0);
         console.log('💰 Stored Budgets:', storedBudgets ? JSON.parse(storedBudgets).length : 0);
@@ -6180,7 +6194,7 @@ function initializeAppLogic() {
             budgets: appState.budgets.length,
             goals: appState.goals.length
         });
-        
+
         return {
             transactions: storedTransactions ? JSON.parse(storedTransactions) : [],
             budgets: storedBudgets ? JSON.parse(storedBudgets) : [],
@@ -6202,15 +6216,15 @@ function initializeAppLogic() {
             },
             localStorage: {}
         };
-        
+
         // Get all localStorage data
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             debugData.localStorage[key] = localStorage.getItem(key);
         }
-        
+
         console.log('🐛 Debug Data Export:', debugData);
-        
+
         const blob = new Blob([JSON.stringify(debugData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -6220,7 +6234,7 @@ function initializeAppLogic() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         showSyncStatus('success', 'Debug data exported! Check console for details.');
     }
 
@@ -6246,6 +6260,10 @@ function initializeAppLogic() {
             if (appState.currentPage === 'reports') {
                 setTimeout(initReportsCharts, 0); // Use timeout to ensure canvas is in DOM
             }
+            // Update transaction list if on that page
+            if (appState.currentPage === 'transactions') {
+                setTimeout(updateTransactionsDisplay, 0);
+            }
         }
     }
 
@@ -6254,7 +6272,7 @@ function initializeAppLogic() {
     function showStorageInfo() {
         const storageData = {};
         let totalSize = 0;
-        
+
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             const value = localStorage.getItem(key);
@@ -6266,12 +6284,12 @@ function initializeAppLogic() {
             };
             totalSize += size;
         }
-        
+
         console.log('💾 LocalStorage Info:');
         console.log('📊 Total Size:', (totalSize / 1024).toFixed(2) + ' KB');
         console.log('📁 Items:', localStorage.length);
         console.log('🗂️ Detailed breakdown:', storageData);
-        
+
         showSyncStatus('info', `Storage: ${(totalSize / 1024).toFixed(2)} KB, ${localStorage.length} items`);
     }
 
@@ -6281,9 +6299,9 @@ function initializeAppLogic() {
             showSyncStatus('error', 'Tidak ada user yang login');
             return;
         }
-        
+
         console.log('🔄 Refreshing app data from localStorage...');
-        
+
         // Backup current state
         const backup = {
             transactions: [...appState.transactions],
@@ -6291,10 +6309,10 @@ function initializeAppLogic() {
             goals: [...appState.goals],
             receivables: [...appState.receivables]
         };
-        
+
         // Reload from localStorage
         loadUserData();
-        
+
         console.log('📊 Data refreshed:');
         console.log('Before:', backup);
         console.log('After:', {
@@ -6303,10 +6321,10 @@ function initializeAppLogic() {
             goals: appState.goals,
             receivables: appState.receivables
         });
-        
+
         // Re-render the page
         render();
-        
+
         showSyncStatus('success', 'Data berhasil dimuat ulang dari storage');
     }
 
@@ -6369,7 +6387,7 @@ function initializeAppLogic() {
                 expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
             });
             const topCategories = Object.entries(expensesByCategory).sort(([,a], [,b]) => b - a).slice(0, 5);
-            
+
             if (topCategories.length > 0) {
                 const labels = topCategories.map(([category]) => category);
                 const data = topCategories.map(([, amount]) => amount);
@@ -6450,7 +6468,6 @@ function initializeAppLogic() {
         if (progressText) {
             setTimeout(() => {
                 progressText.textContent = 'Menghubungkan ke server...';
-                auth.init(); // Mulai proses pengecekan sesi di latar belakang
             }, 500);
             setTimeout(() => {
                 progressText.textContent = 'Hampir selesai...';
