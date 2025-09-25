@@ -263,14 +263,10 @@ function initializeLandingPageLogic() {
  * Initializes the main application logic for app.html.
  */
 function initializeAppLogic() {
-    if (!useSupabase) {
-        console.error('❌ Supabase not configured. Please add credentials to config.js');
-        console.log('📝 To enable Supabase:');
-        console.log('1. Create a Supabase project at https://supabase.com');
-        console.log('2. Go to Settings > API in your Supabase project.');
-        console.log('3. Copy the Project URL and anon public key.');
-        console.log('4. Paste them into the SUPABASE_URL and SUPABASE_ANON_KEY variables in config.js.');
-    }
+    // Default date range to the current month
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
     
     // Simple state management
     let appState = {
@@ -286,8 +282,13 @@ function initializeAppLogic() {
             currentPage: 1,
             transactionsPerPage: 10, // Show 10 transactions per page
             totalTransactions: 0,
-            startDate: '', // Filter tanggal mulai
-            endDate: ''    // Filter tanggal akhir
+            startDate: firstDayOfMonth, // Filter tanggal mulai
+            endDate: lastDayOfMonth,    // Filter tanggal akhir
+            summary: {
+                income: 0,
+                expense: 0,
+                balance: 0
+            }
         },
         goals: [],
         receivables: [],
@@ -462,6 +463,12 @@ function initializeAppLogic() {
 
             const { data, error, count } = await query.range(from, to);
             return { data, error, count };
+        },
+
+        async getTransactionsSummary(userId, startDate, endDate) {
+            // This RPC function needs to be created in Supabase
+            const { data, error } = await supabase.rpc('get_transactions_summary', { p_user_id: userId, p_start_date: startDate, p_end_date: endDate });
+            return { data, error };
         },
         
         async createTransaction(transactionData) {
@@ -786,24 +793,33 @@ function initializeAppLogic() {
 
             const [
                 { data: transactions, error: transError, count: transCount },
+                { data: summaryData, error: summaryError },
                 { data: budgets, error: budgetError },
                 { data: goals, error: goalError },
                 { data: receivables, error: receivableError },
                 { data: debts, error: debtError }
             ] = await Promise.all([
                 api.getTransactions(userId, currentPage, transactionsPerPage, startDate, endDate),
+                api.getTransactionsSummary(userId, startDate, endDate),
                 api.getBudgets(userId),
                 api.getGoals(userId),
                 api.getReceivables(userId),
                 api.getDebts(userId)
             ]);
 
-            if (transError || budgetError || goalError || receivableError || debtError) {
+            if (transError || budgetError || goalError || receivableError || debtError || summaryError) {
                 throw new Error('One or more data streams failed to load.');
             }
 
             appState.transactions = transactions || [];
             appState.budgets = budgets || [];
+            if (summaryData && summaryData.length > 0) {
+                const summary = summaryData[0];
+                appState.transactionManagement.summary.income = summary.total_income || 0;
+                appState.transactionManagement.summary.expense = summary.total_expense || 0;
+                appState.transactionManagement.summary.balance = summary.total_income - summary.total_expense;
+            }
+
             appState.transactionManagement.totalTransactions = transCount || 0;
             appState.goals = goals || [];
             appState.receivables = receivables || [];
@@ -1696,6 +1712,45 @@ function initializeAppLogic() {
                     </div>
                 </div>
 
+                <!-- Summary Cards for Filtered Date Range -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center mr-4 shadow-md">
+                                <i class="fas fa-arrow-up text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Pemasukan (Filter)</p>
+                                <p class="text-xl font-bold text-green-600 dark:text-green-400">Rp ${(appState.transactionManagement.summary.income * 1000).toLocaleString('id-ID')}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-rose-500 rounded-xl flex items-center justify-center mr-4 shadow-md">
+                                <i class="fas fa-arrow-down text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Pengeluaran (Filter)</p>
+                                <p class="text-xl font-bold text-red-600 dark:text-red-400">Rp ${(appState.transactionManagement.summary.expense * 1000).toLocaleString('id-ID')}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center mr-4 shadow-md">
+                                <i class="fas fa-wallet text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Saldo Bersih (Filter)</p>
+                                <p class="text-xl font-bold ${appState.transactionManagement.summary.balance >= 0 ? 'text-green-600' : 'text-red-600'} dark:${appState.transactionManagement.summary.balance >= 0 ? 'text-green-400' : 'text-red-400'}">
+                                    Rp ${(appState.transactionManagement.summary.balance * 1000).toLocaleString('id-ID')}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Search and Filter Section -->
                 <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-xl border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
                     <div class="flex flex-col lg:flex-row gap-4">
@@ -1718,12 +1773,14 @@ function initializeAppLogic() {
                             <input
                                 type="date"
                                 id="start-date-filter"
+                                value="${appState.transactionManagement.startDate}"
                                 onchange="handleDateFilterChange()"
                                 class="w-full px-3 py-3 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium bg-white/80 backdrop-blur-sm transition-all duration-300 text-sm shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                             />
                             <input
                                 type="date"
                                 id="end-date-filter"
+                                value="${appState.transactionManagement.endDate}"
                                 onchange="handleDateFilterChange()"
                                 class="w-full px-3 py-3 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium bg-white/80 backdrop-blur-sm transition-all duration-300 text-sm shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                             />
@@ -6170,12 +6227,17 @@ function initializeAppLogic() {
         // Reset date inputs and state
         const startDateInput = document.getElementById('start-date-filter');
         const endDateInput = document.getElementById('end-date-filter');
-        if (startDateInput) startDateInput.value = '';
-        if (endDateInput) endDateInput.value = '';
-        appState.transactionManagement.startDate = '';
-        appState.transactionManagement.endDate = '';
+        
+        // Default to current month
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+        
+        appState.transactionManagement.startDate = firstDayOfMonth;
+        appState.transactionManagement.endDate = lastDayOfMonth;
 
-        setTransactionFilter('all'); // This will trigger a reload and re-render
+        // This will trigger a reload and re-render
+        handleDateFilterChange();
     }
 
     // Sync status notification system
