@@ -397,6 +397,32 @@ function initializeAppLogic() {
             return { data, error };
         },
 
+        // --- Admin Aggregate Functions ---
+        async getSystemStats() {
+            // This RPC function needs to be created in Supabase
+            // It should return { total_transactions: count, total_volume: sum }
+            const { data, error } = await supabase.rpc('get_system_stats');
+            return { data, error };
+        },
+
+        async getTopActiveUsers(limit = 5) {
+            // This RPC function needs to be created in Supabase
+            // It should return users with their transaction_count and total_volume
+            const { data, error } = await supabase.rpc('get_top_active_users', { limit_count: limit });
+            return { data, error };
+        },
+
+        async getMonthlyUserGrowth() {
+            // This RPC function needs to be created in Supabase
+            // It should return { month, user_count } for the last 6 months
+            const { data, error } = await supabase.rpc('get_monthly_user_growth');
+            return { data, error };
+        },
+
+        // We can reuse the existing function for transaction activity
+        // No new API function needed for this one if we fetch all transactions.
+        // However, an RPC would be more performant.
+
         async getTransactionsFromLastMonths(months = 6) {
             const date = new Date();
             date.setMonth(date.getMonth() - months);
@@ -664,8 +690,29 @@ function initializeAppLogic() {
             render(); // Directly re-render the app, which will show the login page
         },
         init: async () => {
-            // Tidak ada lagi inisialisasi sesi dari localStorage.
-            // Pengguna harus selalu login.
+            // Cek sesi aktif dari Supabase saat aplikasi dimuat
+            if (useSupabase) {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) {
+                    console.error("Error getting session:", error);
+                    return;
+                }
+
+                if (session && session.user) {
+                    console.log('✅ Sesi aktif ditemukan untuk:', session.user.email);
+                    // Ambil data profil lengkap dari tabel 'users' kita
+                    const { data: dbUser, error: userError } = await api.getUserByEmail(session.user.email);
+                    if (userError || !dbUser) {
+                        console.warn('Sesi Supabase ada, tapi user tidak ditemukan di tabel "users". Logout paksa.');
+                        await supabase.auth.signOut();
+                        return;
+                    }
+                    appState.user = dbUser; // Set user di state aplikasi
+                    await loadUserData(); // Muat data spesifik user
+                } else {
+                    console.log('ⓘ Tidak ada sesi aktif. Menampilkan halaman login.');
+                }
+            }
         },
         setPin: async (newPin) => {
             if (!appState.user) return false;
@@ -1348,7 +1395,7 @@ function initializeAppLogic() {
             case 'user-management':
                 if (appState.user?.role === 'admin') { return renderUserManagement(); } else { return renderOverviewPage(); }
             case 'system-reports':
-                return appState.user?.role === 'admin' ? renderSystemReports() : renderOverviewPage();
+                return appState.user?.role === 'admin' ? renderSystemReports() : renderOverviewPage(); // This will now handle async rendering
             default:
                 return renderOverviewPage();
         }
@@ -3484,12 +3531,12 @@ function initializeAppLogic() {
     }
 
     function renderUserManagement() {
-        const containerId = 'user-management-container';
+        const containerId = 'user-management-content'; // ID untuk konten dinamis
 
         // Immediately return a placeholder with a loading state
         const placeholder = `
-            <div id="${containerId}" class="space-y-6 sm:space-y-8 fade-in">
-                <div class="text-center p-12">
+            <div class="text-center p-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
                     <i class="fas fa-spinner fa-spin text-4xl text-indigo-500"></i>
                     <p class="mt-4 text-gray-600">Memuat data pengguna dari database...</p>
                 </div>
@@ -3497,11 +3544,11 @@ function initializeAppLogic() {
         `;
 
         // Asynchronously fetch and render the actual content
-        (async () => {
+        const fetchAndRenderUsers = async () => {
             let usersOnPage = [];
             let errorState = null;
             const { currentPage, usersPerPage } = appState.userManagement;
-
+            
             if (useSupabase) {
                 try {
                     const { data: supabaseUsers, error, count } = await api.getAllUsers(currentPage, usersPerPage);
@@ -3522,10 +3569,11 @@ function initializeAppLogic() {
                 showSyncStatus('error', errorState);
             }
 
-            const totalUsers = appState.userManagement.totalUsers;
-
-            const content = `
-            <div class="space-y-6 sm:space-y-8 fade-in">
+            const totalUsers = appState.userManagement.totalUsers; // Ambil total user terbaru
+            
+            // Konten utama halaman, tidak termasuk placeholder
+            const mainContent = `
+            <div class="space-y-6 sm:space-y-8">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
                         <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
@@ -3615,7 +3663,7 @@ function initializeAppLogic() {
                                 
                                 return `
                                     <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300">
-                                        <div class="flex flex-col gap-4">
+                                        <div class="flex flex-col gap-4 sm:gap-6">
                                             <!-- User Info Header -->
                                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                                 <div class="flex items-center space-x-4">
@@ -3635,20 +3683,20 @@ function initializeAppLogic() {
                                                         <p class="text-xs sm:text-sm text-gray-500">ID: ${userId}</p>
                                                         <div class="flex items-center space-x-3 mt-2">
                                                             <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">${userTransactionsCount} transaksi</span>
-                                                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">${userBudgetsCount} anggaran</span>
+                                                            <span class="hidden xs:inline-flex text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">${userBudgetsCount} anggaran</span>
                                                             <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">${userGoalsCount} target</span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="text-right">
+                                                <div class="text-right flex-shrink-0 sm:pl-4">
                                                     <p class="text-lg sm:text-xl font-bold text-gray-800">Rp ${(totalAmount * 1000).toLocaleString('id-ID')}</p>
                                                     <p class="text-xs sm:text-sm text-gray-500">Total volume</p>
-                                                    <p class="text-xs text-gray-400 mt-1">Bergabung: Nov 2024</p>
+                                                    <p class="text-xs text-gray-400 mt-1">Bergabung: ${new Date(user.created_at).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}</p>
                                                 </div>
                                             </div>
                                             
                                             <!-- Action Buttons -->
-                                            <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+                                            <div class="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100">
                                                 <button onclick="viewUserDetails('${email}')" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                                                     <i class="fas fa-eye mr-1"></i>Detail
                                                 </button>
@@ -3675,16 +3723,26 @@ function initializeAppLogic() {
                         ${renderPaginationControls()}
                     </div>
                 </div>
-            </div>`;
+                </div>
+            `;
 
-            // After a short delay to allow the placeholder to render, replace it with the actual content
-            setTimeout(() => {
-                const container = document.getElementById(containerId);
-                if (container) container.innerHTML = content;
-            }, 100);
-        })();
+            const container = document.getElementById('page-content');
+            if (container) {
+                container.innerHTML = mainContent;
+            }
+        };
 
-        return placeholder;
+        // Panggil fungsi fetch dan render
+        fetchAndRenderUsers();
+
+        // Kembalikan struktur dasar dengan placeholder
+        return `
+            <div class="space-y-6 sm:space-y-8 fade-in" id="user-management-page">
+                <div id="user-management-content">
+                    ${placeholder}
+                </div>
+            </div>
+        `;
     }
 
     function renderPaginationControls() {
@@ -3694,8 +3752,8 @@ function initializeAppLogic() {
         if (totalPages <= 1) return '';
 
         return `
-            <div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200/80 dark:border-slate-700/80">
-                <span class="text-sm text-gray-600 dark:text-gray-400">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-gray-200/80 dark:border-slate-700/80">
+                <span class="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
                     Menampilkan <strong>${(currentPage - 1) * usersPerPage + 1}</strong>-<strong>${Math.min(currentPage * usersPerPage, totalUsers)}</strong> dari <strong>${totalUsers}</strong>
                 </span>
                 <div class="flex items-center space-x-2">
@@ -3710,7 +3768,7 @@ function initializeAppLogic() {
                     <button 
                         onclick="navigateToUserPage(${currentPage + 1})" 
                         class="px-4 py-2 text-sm font-semibold rounded-xl bg-white/80 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600"
-                        ${currentPage === totalPages ? 'disabled' : ''}
+                        ${currentPage >= totalPages ? 'disabled' : ''}
                     >
                         Berikutnya &raquo;
                     </button>
@@ -3719,67 +3777,35 @@ function initializeAppLogic() {
         `;
     }
 
-    function navigateToUserPage(page) {
+    async function navigateToUserPage(page) {
+        const { totalUsers, usersPerPage } = appState.userManagement;
+        const totalPages = Math.ceil(totalUsers / usersPerPage);
+
+        // Mencegah navigasi ke halaman yang tidak valid
+        if (page < 1 || (totalPages > 0 && page > totalPages)) return;
+
         appState.userManagement.currentPage = page;
-        render();
+
+        // Tampilkan loading spinner di dalam tabel
+        const userListContainer = document.querySelector('.space-y-4');
+        if (userListContainer) {
+            userListContainer.innerHTML = `<div class="text-center p-8"><i class="fas fa-spinner fa-spin text-2xl text-indigo-500"></i></div>`;
+        }
+
+        // Ambil data baru
+        const { data: newUsers, error, count } = await api.getAllUsers(page, usersPerPage);
+        if (error) {
+            showSyncStatus('error', 'Gagal memuat halaman berikutnya.');
+            return;
+        }
+
+        // Update state dan render ulang hanya bagian yang perlu
+        appState.userManagement.totalUsers = count;
+        render(); // Panggil render utama untuk memperbarui seluruh halaman dengan state baru
     }
 
     function renderSystemReports() {
-        // --- Data Aggregation ---
-        // Data ini idealnya diambil dari fungsi agregat di Supabase.
-        // Untuk saat ini, kita akan simulasikan atau gunakan data yang sudah ada.
-        const totalUsers = appState.userManagement.totalUsers || 0;
-
-        let totalTransactions = 0;
-        let totalVolume = 0;
-        const userActivity = [];
-
-        // Simulasi data, karena kita tidak mengambil data semua user.
-        userActivity.forEach(({ transactionCount, userVolume }) => {
-            
-            totalTransactions += transactionCount;
-            totalVolume += userVolume;
-            
-            userActivity.push({
-                email: user.email,
-                transactionCount: transactionCount,
-                volume: userVolume
-            });
-        });
-
-        const topActiveUsers = userActivity.sort((a, b) => b.transactionCount - a.transactionCount).slice(0, 5);
-
-        // --- Dynamic Chart Data Generation ---
-        const transactionActivity = {};
-        const monthNamesChart = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-        const todayChart = new Date();
-
-        // Initialize last 6 months
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(todayChart.getFullYear(), todayChart.getMonth() - i, 1);
-            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            transactionActivity[key] = {
-                label: monthNamesChart[d.getMonth()],
-                count: 0
-            };
-        }
-
-        // Data ini juga perlu agregasi dari Supabase. Kita simulasikan.
-
-        const dynamicTransactionActivityData = Object.values(transactionActivity);
-        const maxActivity = Math.max(1, ...dynamicTransactionActivityData.map(d => d.count));
-
-        // Simulated data for charts
-        const userGrowthData = [
-            { month: 'Jul', users: 5 }, { month: 'Agu', users: 8 }, { month: 'Sep', users: 12 },
-            { month: 'Okt', users: 15 }, { month: 'Nov', users: totalUsers }
-        ];
-        const maxGrowth = Math.max(1, ...userGrowthData.map(d => d.users));
-        
-        // Simulated visitor count
-        const visitorCount = 1250 + Math.floor(Math.random() * 100);
-
-        return `
+        const placeholder = `
             <div class="space-y-6 sm:space-y-8 fade-in">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
@@ -3790,75 +3816,119 @@ function initializeAppLogic() {
                         <p class="text-gray-600 text-sm sm:text-base mt-1">Analisis mendalam performa dan penggunaan sistem</p>
                     </div>
                 </div>
-                
-                <!-- System Stats -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Total Pengguna</p><p class="text-3xl font-bold text-blue-600">${totalUsers}</p></div>
-                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Total Transaksi</p><p class="text-3xl font-bold text-green-600">${totalTransactions.toLocaleString('id-ID')}</p></div>
-                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Total Volume</p><p class="text-3xl font-bold text-purple-600">Rp ${(totalVolume * 1000).toLocaleString('id-ID')}</p></div>
-                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Jumlah Visitor</p><p class="text-3xl font-bold text-orange-600">${visitorCount.toLocaleString('id-ID')}</p></div>
+                <div class="text-center p-12">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+                    <p class="mt-4 text-gray-600">Memuat laporan sistem dari database...</p>
                 </div>
+            </div>`;
 
-                <!-- Charts -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                    <!-- User Growth Chart -->
-                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
-                        <h3 class="text-lg font-bold text-gray-800 mb-6">Pertumbuhan Pengguna</h3>
-                        <div class="relative h-40 flex items-end justify-around">
-                            ${userGrowthData.map(data => `
-                                <div class="flex flex-col items-center w-1/6">
-                                    <div class="w-6 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg shadow-lg" style="height: ${(data.users / maxGrowth) * 100}%" title="${data.users} pengguna"></div>
-                                    <div class="mt-2 text-xs text-gray-500">${data.month}</div>
-                                </div>
-                            `).join('')}
+        (async () => {
+            const pageContent = document.getElementById('page-content');
+            
+            // Fetch all required data in parallel
+            const [
+                { data: stats, error: statsError },
+                { data: topUsers, error: topUsersError },
+                { data: userGrowth, error: userGrowthError },
+                { data: allTransactions, error: transactionsError }
+            ] = await Promise.all([
+                api.getSystemStats(),
+                api.getTopActiveUsers(),
+                api.getMonthlyUserGrowth(),
+                api.getTransactionsFromLastMonths(6) // For transaction activity chart
+            ]);
+
+            if (statsError || topUsersError || userGrowthError || transactionsError) {
+                console.error('Failed to fetch system reports data:', { statsError, topUsersError, userGrowthError, transactionsError });
+                showSyncStatus('error', 'Gagal memuat data laporan sistem.');
+                if (pageContent) pageContent.innerHTML = `<div class="text-center p-12 text-red-500">Gagal memuat data. Coba lagi nanti.</div>`;
+                return;
+            }
+
+            // --- Process Data ---
+            const totalUsers = stats?.total_users || 0;
+            const totalTransactions = stats?.total_transactions || 0;
+            const totalVolume = stats?.total_volume || 0;
+            const topActiveUsers = topUsers || [];
+            const visitorCount = 1250 + Math.floor(Math.random() * 100); // Still simulated
+
+            // Process user growth data
+            const userGrowthData = userGrowth?.map(d => ({ month: d.month, users: d.user_count })) || [];
+            const maxGrowth = Math.max(1, ...userGrowthData.map(d => d.users));
+
+            // Process transaction activity data
+            const transactionActivity = {};
+            const monthNamesChart = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+            const todayChart = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(todayChart.getFullYear(), todayChart.getMonth() - i, 1);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                transactionActivity[key] = { label: monthNamesChart[d.getMonth()], count: 0 };
+            }
+            allTransactions.forEach(t => {
+                const d = new Date(t.date);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                if (transactionActivity[key]) {
+                    transactionActivity[key].count += 1;
+                }
+            });
+            const dynamicTransactionActivityData = Object.values(transactionActivity);
+            const maxActivity = Math.max(1, ...dynamicTransactionActivityData.map(d => d.count));
+
+            // --- Render Content ---
+            const content = `
+                <div class="space-y-6 sm:space-y-8 fade-in">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center">
+                                <i class="fas fa-chart-area text-purple-500 mr-3"></i>
+                                Laporan Sistem
+                            </h1>
+                            <p class="text-gray-600 text-sm sm:text-base mt-1">Analisis mendalam performa dan penggunaan sistem</p>
                         </div>
                     </div>
-
-                    <!-- Transaction Activity Chart -->
-                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
-                        <h3 class="text-lg font-bold text-gray-800 mb-6">Aktivitas Transaksi</h3>
-                        <div class="relative h-40 flex items-end justify-around">
-                            ${dynamicTransactionActivityData.map(data => `
-                                <div class="flex flex-col items-center w-1/6">
-                                    <div class="w-6 bg-gradient-to-t from-green-500 to-green-400 rounded-t-lg shadow-lg" style="height: ${(data.count / maxActivity) * 100}%" title="${data.count} transaksi"></div>
-                                    <div class="mt-2 text-xs text-gray-500">${data.label}</div>
-                                </div>
-                            `).join('')}
-                        </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Total Pengguna</p><p class="text-3xl font-bold text-blue-600">${totalUsers}</p></div>
+                        <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Total Transaksi</p><p class="text-3xl font-bold text-green-600">${totalTransactions.toLocaleString('id-ID')}</p></div>
+                        <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Total Volume</p><p class="text-3xl font-bold text-purple-600">Rp ${(totalVolume * 1000).toLocaleString('id-ID')}</p></div>
+                        <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20"><p class="text-sm font-medium text-gray-600 mb-2">Jumlah Visitor</p><p class="text-3xl font-bold text-orange-600">${visitorCount.toLocaleString('id-ID')}</p></div>
                     </div>
-                </div>
 
-                <!-- Top Active Users -->
-                <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
-                    <h3 class="text-lg font-bold text-gray-800 mb-6">Pengguna Paling Aktif</h3>
-                    <div class="space-y-4">
-                        ${topActiveUsers.map((user, index) => `
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 bg-white/50 rounded-2xl border border-white/30">
-                                <div class="flex items-center space-x-4 min-w-0">
-                                    <span class="font-bold text-gray-500 w-6 text-center">${index + 1}.</span>
-                                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                                        <i class="fas fa-user text-white"></i>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <p class="font-semibold text-gray-800 truncate" title="${user.email}">${user.email}</p>
-                                        <p class="text-xs text-gray-500">Volume: Rp ${(user.volume * 1000).toLocaleString('id-ID')}</p>
-                                    </div>
-                                </div>
-                                <div class="text-left sm:text-right pl-12 sm:pl-0">
-                                    <p class="font-bold text-blue-600">${user.transactionCount} Transaksi</p>
-                                </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                        <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
+                            <h3 class="text-lg font-bold text-gray-800 mb-6">Pertumbuhan Pengguna</h3>
+                            <div class="relative h-40 flex items-end justify-around">
+                                ${userGrowthData.map(data => `<div class="flex flex-col items-center w-1/6"><div class="w-6 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg shadow-lg" style="height: ${(data.users / maxGrowth) * 100}%" title="${data.users} pengguna"></div><div class="mt-2 text-xs text-gray-500">${data.month}</div></div>`).join('')}
                             </div>
-                        `).join('')}
-                        ${topActiveUsers.length === 0 ? `<p class="text-center text-gray-500">Belum ada aktivitas pengguna.</p>` : ''}
+                        </div>
+                        <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
+                            <h3 class="text-lg font-bold text-gray-800 mb-6">Aktivitas Transaksi</h3>
+                            <div class="relative h-40 flex items-end justify-around">
+                                ${dynamicTransactionActivityData.map(data => `<div class="flex flex-col items-center w-1/6"><div class="w-6 bg-gradient-to-t from-green-500 to-green-400 rounded-t-lg shadow-lg" style="height: ${(data.count / maxActivity) * 100}%" title="${data.count} transaksi"></div><div class="mt-2 text-xs text-gray-500">${data.label}</div></div>`).join('')}
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
+
+                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
+                        <h3 class="text-lg font-bold text-gray-800 mb-6">Pengguna Paling Aktif</h3>
+                        <div class="space-y-4">
+                            ${topActiveUsers.map((user, index) => `<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 bg-white/50 rounded-2xl border border-white/30"><div class="flex items-center space-x-4 min-w-0"><span class="font-bold text-gray-500 w-6 text-center">${index + 1}.</span><div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"><i class="fas fa-user text-white"></i></div><div class="min-w-0"><p class="font-semibold text-gray-800 truncate" title="${user.email}">${user.email}</p><p class="text-xs text-gray-500">Volume: Rp ${(user.total_volume * 1000).toLocaleString('id-ID')}</p></div></div><div class="text-left sm:text-right pl-12 sm:pl-0"><p class="font-bold text-blue-600">${user.transaction_count} Transaksi</p></div></div>`).join('')}
+                            ${topActiveUsers.length === 0 ? `<p class="text-center text-gray-500">Belum ada aktivitas pengguna.</p>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            
+            if (pageContent) pageContent.innerHTML = content;
+        })();
+
+        return placeholder;
     }
 
     // Event Handlers
     // Expose functions to the global scope for inline onclick attributes
     window.handleLogin = handleLogin;
+    window.navigateToUserPage = navigateToUserPage;
     window.quickLogin = quickLogin;
     async function handleLogin() {
         const email = document.getElementById('email-input').value;
@@ -6374,12 +6444,13 @@ function initializeAppLogic() {
     // Initialize app
     async function startApp() {
         render(); // Tampilkan loading screen pertama kali
-        
+
         // Update progress text during loading
         const progressText = document.getElementById('loading-progress-text');
         if (progressText) {
             setTimeout(() => {
                 progressText.textContent = 'Menghubungkan ke server...';
+                auth.init(); // Mulai proses pengecekan sesi di latar belakang
             }, 500);
             setTimeout(() => {
                 progressText.textContent = 'Hampir selesai...';
