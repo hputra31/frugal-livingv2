@@ -278,6 +278,24 @@ function initializeAppLogic() {
         showQuickAdd: false,
         transactions: [],
         budgets: [],
+        categories: [
+            // Expense Categories
+            { type: 'expense', name: '🍽️ Makanan' },
+            { type: 'expense', name: '🚗 Transportasi' },
+            { type: 'expense', name: '🛍️ Belanja' },
+            { type: 'expense', name: '📄 Tagihan' },
+            { type: 'expense', name: '🎬 Hiburan' },
+            { type: 'expense', name: '🏥 Kesehatan' },
+            { type: 'expense', name: '📚 Pendidikan' },
+            { type: 'expense', name: '🎁 Hadiah' },
+            { type: 'expense', name: '🏠 Rumah Tangga' },
+            { type: 'expense', name: '📦 Lainnya' },
+            // Income Categories
+            { type: 'income', name: '💰 Gaji' },
+            { type: 'income', name: '📈 Investasi' },
+            { type: 'income', name: '💸 Bonus' },
+            { type: 'income', name: '🪙 Lainnya' },
+        ],
         transactionManagement: {
             currentPage: 1,
             transactionsPerPage: 10, // Show 10 transactions per page
@@ -3397,15 +3415,12 @@ function initializeAppLogic() {
                                         class="w-full px-4 sm:px-6 py-4 sm:py-5 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold bg-white/80 backdrop-blur-sm transition-all duration-300 group-hover:border-indigo-300 text-sm sm:text-lg shadow-sm"
                                         required
                                     >
+                                        <!-- Options will be populated by setTransactionType -->
                                         <option value="">✨ Pilih Kategori</option>
-                                        <option value="Makanan">🍽️ Makanan</option>
-                                        <option value="Transportasi">🚗 Transport</option>
-                                        <option value="Belanja">🛍️ Belanja</option>
-                                        <option value="Tagihan">📄 Tagihan</option>
-                                        <option value="Hiburan">🎬 Hiburan</option>
-                                        <option value="Kesehatan">🏥 Kesehatan</option>
-                                        <option value="Pendidikan">📚 Pendidikan</option>
-                                        <option value="Lainnya">📦 Lainnya</option>
+                                        ${appState.categories
+                                            .filter(c => c.type === 'expense') // Default to expense
+                                            .map(c => `<option value="${c.name}">${c.name}</option>`)
+                                            .join('')}
                                     </select>
                                 </div>
                                 
