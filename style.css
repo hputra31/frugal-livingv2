@@ -189,6 +189,13 @@ details[open] > summary .accordion-icon {
     vertical-align: bottom;
 }
 
+/* Menghilangkan background putih pada logo */
+.logo-transparent-bg {
+    mix-blend-mode: multiply;
+    /* Menambah kecerahan dan kontras agar logo lebih menonjol */
+    filter: brightness(1.1) contrast(1.1);
+}
+
 @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
