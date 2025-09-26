@@ -1144,7 +1144,7 @@ function initializeAppLogic() {
                 <div class="text-center fade-in">
                     <!-- Ganti ikon dengan tag <img> untuk logo Anda -->
                     <div class="inline-flex items-center justify-center w-24 h-24 mb-8 loader-icon drop-shadow-xl">
-                        <img src="logo.png" alt="Frixsave Logo" class="h-full w-full object-contain logo-transparent-bg">
+                        <img src="icon.png" alt="Frixsave Logo" class="h-full w-full object-contain logo-transparent-bg">
                     </div>
                     <h1 class="text-5xl font-bold text-white mb-4 tracking-tight glowing-text">Frixsave</h1>
                     <p class="text-white/80 text-xl">Memuat data keuangan Anda...</p>
