@@ -26,12 +26,36 @@ function initializeLandingPageLogic() {
             opacity: [0, 1],
             duration: 1000
         })
-        .add({
-            targets: 'main p',
-            translateY: [25, 0],
-            opacity: [0, 1],
-        }, '-=800') // Start 800ms before the previous animation ends
-        .add({
+        .add({ // Make the paragraph container visible before typing starts
+            targets: '#typing-effect',
+            opacity: [0, 1]
+        }, '-=800')
+        .add({ // Start the typing effect
+            targets: '#typing-effect',
+            duration: 5000, // Duration for the typing effect
+            begin: function() {
+                const targetElement = document.getElementById('typing-effect');
+                const textToType = "Frugal Living adalah aplikasi budgeting all-in-one yang membantu Anda melacak pengeluaran, membuat anggaran, dan mencapai target finansial dengan mudah.";
+                let i = 0;
+                const typingSpeed = 30; // ms per character
+                const cursor = document.createElement('span');
+                cursor.className = 'typing-cursor';
+                targetElement.appendChild(cursor);
+
+                function typeWriter() {
+                    if (i < textToType.length) {
+                        targetElement.insertBefore(document.createTextNode(textToType.charAt(i)), cursor);
+                        i++;
+                        setTimeout(typeWriter, typingSpeed);
+                    } else {
+                        cursor.style.animationPlayState = 'paused';
+                        cursor.style.opacity = 0;
+                    }
+                }
+                typeWriter();
+            }
+        }, '-=600')
+        .add({ // Animate the button after typing starts
             targets: 'main a',
             translateY: [25, 0],
             opacity: [0, 1],
@@ -275,6 +299,9 @@ function initializeAppLogic() {
         profile: { name: 'Pengguna Frugal', currency: 'IDR', theme: 'light' },
         currentPage: 'overview',
         sidebarOpen: false,
+        overview: {
+            categoryChartFilter: 'thisMonth' // 'today', 'thisWeek', 'thisMonth', 'thisYear'
+        },
         showQuickAdd: false,
         transactions: [],
         budgets: [],
@@ -1597,11 +1624,38 @@ function initializeAppLogic() {
                                 </div>
                                 Kategori Pengeluaran
                             </h3>
+                            <!-- Category Chart Filter Dropdown -->
+                            <select onchange="setCategoryChartFilter(this.value)" class="text-sm bg-white/80 border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white">
+                                <option value="today" ${appState.overview.categoryChartFilter === 'today' ? 'selected' : ''}>Hari Ini</option>
+                                <option value="thisWeek" ${appState.overview.categoryChartFilter === 'thisWeek' ? 'selected' : ''}>Minggu Ini</option>
+                                <option value="thisMonth" ${appState.overview.categoryChartFilter === 'thisMonth' ? 'selected' : ''}>Bulan Ini</option>
+                                <option value="thisYear" ${appState.overview.categoryChartFilter === 'thisYear' ? 'selected' : ''}>Tahun Ini</option>
+                            </select>
                         </div>
                         
                         ${(() => {
+                            const now = new Date();
+                            const todayStr = now.toISOString().split('T')[0];
+                            
+                            const startOfWeek = new Date(now);
+                            startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); // Monday as start of week
+                            const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
+
+                            const startOfMonthStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                            const startOfYearStr = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+
+                            const filteredTransactions = appState.transactions.filter(t => {
+                                switch(appState.overview.categoryChartFilter) {
+                                    case 'today': return t.date === todayStr;
+                                    case 'thisWeek': return t.date >= startOfWeekStr;
+                                    case 'thisMonth': return t.date >= startOfMonthStr;
+                                    case 'thisYear': return t.date >= startOfYearStr;
+                                    default: return true;
+                                }
+                            });
+
                             const expensesByCategory = {};
-                            appState.transactions.filter(t => t.type === 'expense').forEach(t => {
+                            filteredTransactions.filter(t => t.type === 'expense').forEach(t => {
                                 expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
                             });
                             const topCategories = Object.entries(expensesByCategory).sort(([,a], [,b]) => b - a).slice(0, 4);
