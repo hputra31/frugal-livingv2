@@ -32,12 +32,12 @@ function initializeLandingPageLogic() {
         }, '-=800')
         .add({ // Start the typing effect
             targets: '#typing-effect',
-            duration: 5000, // Duration for the typing effect
+            duration: 10000, // Increased duration for the longer text
             begin: function() {
                 const targetElement = document.getElementById('typing-effect');
-                const textToType = "Frugal Living adalah aplikasi budgeting all-in-one yang membantu Anda melacak pengeluaran, membuat anggaran, dan mencapai target finansial dengan mudah.";
+                const textToType = "Frixsave (Financial Revolution & Innovative Xtra Save) adalah gerakan revolusioner dalam pengelolaan keuangan pribadi yang menggunakan inovasi teknologi cerdas untuk menggantikan metode budgeting lama yang rumit. Tujuan utamanya adalah memberikan kebebasan finansial dengan menghasilkan simpanan ekstra (Xtra Save) yang nyata bagi penggunanya.";
                 let i = 0;
-                const typingSpeed = 30; // ms per character
+                const typingSpeed = 20; // Slightly faster typing speed
                 const cursor = document.createElement('span');
                 cursor.className = 'typing-cursor';
                 targetElement.appendChild(cursor);
@@ -69,7 +69,7 @@ function initializeLandingPageLogic() {
                 const sectionId = entry.target.id;
                 let targets;
 
-                if (sectionId === 'features' || sectionId === 'testimonials' || sectionId === 'faq') {
+                if (sectionId === 'features' || sectionId === 'slogans' || sectionId === 'testimonials' || sectionId === 'faq') {
                     targets = `#${sectionId} .fade-in-section`;
                 } else if (sectionId === 'pricing' || sectionId === 'cta') {
                     targets = `#${sectionId} .fade-in-section`;
@@ -95,7 +95,7 @@ function initializeLandingPageLogic() {
     });
 
     // Observe the main sections that need to be animated on scroll
-    const sectionsToAnimate = document.querySelectorAll('#features, #pricing, #testimonials, #faq, #cta');
+    const sectionsToAnimate = document.querySelectorAll('#features, #slogans, #pricing, #testimonials, #faq, #cta');
     sectionsToAnimate.forEach(section => {
         // Hide sections initially
         const children = section.querySelectorAll('.fade-in-section');
@@ -296,7 +296,7 @@ function initializeAppLogic() {
     let appState = {
         user: null,
         isLoading: true,
-        profile: { name: 'Pengguna Frugal', currency: 'IDR', theme: 'light' },
+        profile: { name: 'Pengguna Frixsave', currency: 'IDR', theme: 'light' },
         currentPage: 'overview',
         sidebarOpen: false,
         overview: {
@@ -316,11 +316,15 @@ function initializeAppLogic() {
             { type: 'expense', name: '📚 Pendidikan' },
             { type: 'expense', name: '🎁 Hadiah' },
             { type: 'expense', name: '🏠 Rumah Tangga' },
+            { type: 'expense', name: '📱 Top Up' },
+            { type: 'expense', name: '💳 E-Wallet' },
+            { type: 'expense', name: '🤝 Arisan' },
             { type: 'expense', name: '📦 Lainnya' },
             // Income Categories
             { type: 'income', name: '💰 Gaji' },
             { type: 'income', name: '📈 Investasi' },
             { type: 'income', name: '💸 Bonus' },
+            { type: 'income', name: '🤝 Arisan' },
             { type: 'income', name: '🪙 Lainnya' },
         ],
         transactionManagement: {
@@ -749,7 +753,7 @@ function initializeAppLogic() {
             appState = {
                 user: null,
                 isLoading: false, // Set to false to prevent loading screen
-                profile: { name: 'Pengguna Frugal', currency: 'IDR', theme: 'light' },
+                profile: { name: 'Pengguna Frixsave', currency: 'IDR', theme: 'light' },
                 currentPage: 'overview',
                 sidebarOpen: false,
                 showQuickAdd: false,
@@ -820,7 +824,7 @@ function initializeAppLogic() {
     }
 
     function loadProfileSettings(userId) {
-        appState.profile.name = appState.user.name || 'Pengguna Frugal';
+        appState.profile.name = appState.user.name || 'Pengguna Frixsave';
         appState.profile.currency = appState.user.currency || 'IDR';
         appState.profile.theme = appState.user.theme || 'light';
         applyTheme(appState.profile.theme);
@@ -1138,10 +1142,11 @@ function initializeAppLogic() {
                     }
                 </style>
                 <div class="text-center fade-in">
-                    <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-500 rounded-3xl mb-8 shadow-2xl loader-icon">
-                        <i class="fas fa-piggy-bank text-4xl text-white"></i>
+                    <!-- Ganti ikon dengan tag <img> untuk logo Anda -->
+                    <div class="inline-flex items-center justify-center w-24 h-24 mb-8 loader-icon drop-shadow-xl">
+                        <img src="logo.png" alt="Frixsave Logo" class="h-full w-full object-contain logo-transparent-bg">
                     </div>
-                    <h1 class="text-5xl font-bold text-white mb-4 tracking-tight glowing-text">Frugal Living</h1>
+                    <h1 class="text-5xl font-bold text-white mb-4 tracking-tight glowing-text">Frixsave</h1>
                     <p class="text-white/80 text-xl">Memuat data keuangan Anda...</p>
                     <!-- Progress Bar -->
                     <div class="w-full max-w-xs bg-white/20 rounded-full h-2.5 mt-8 mx-auto">
@@ -1188,10 +1193,10 @@ function initializeAppLogic() {
                 <div class="relative bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20 fade-in">
                     <!-- Header -->
                     <div class="text-center mb-8">
-                        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-3xl mb-6 shadow-lg">
-                            <i class="fas fa-piggy-bank text-3xl text-white"></i>
+                        <!-- Logo diperbesar dan diberi bayangan -->
+                        <div class="inline-flex items-center justify-center w-25 h-24 mb-6 drop-shadow-xl ">
+                            <img src="logo.png" alt="Frixsave Logo" class="h-full w-full object-contain logo-transparent-bg">
                         </div>
-                        <h1 class="text-4xl font-bold text-white mb-3 tracking-tight">Frugal Living</h1>
                         <p class="text-white/80 text-lg">Smart Financial Management</p>
                         <div class="w-16 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full mx-auto mt-4"></div>
                     </div>
@@ -1239,14 +1244,14 @@ function initializeAppLogic() {
                     <!-- Demo Buttons -->
                     <div class="space-y-3">
                         <button
-                            onclick="quickLogin('demo@frugal.com')"
+                            onclick="quickLogin('demo@frixsave.com')"
                             class="w-full bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-2xl transition-all duration-300 border border-white/20 hover:border-white/40 backdrop-blur-sm group"
                         >
                             <div class="flex items-center justify-center">
                                 <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mr-3">
                                     <i class="fas fa-user text-white text-sm"></i>
                                 </div>
-                                <span class="font-medium">demo@frugal.com</span>
+                                <span class="font-medium">demo@frixsave.com</span>
                                 <i class="fas fa-arrow-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-300"></i>
                             </div>
                         </button>
@@ -1286,35 +1291,28 @@ function initializeAppLogic() {
                                 >
                                     <i class="fas fa-bars text-lg"></i>
                                 </button>
-                                <div class="flex items-center ml-2 lg:ml-0">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
-                                        <i class="fas fa-piggy-bank text-white text-lg"></i>
-                                    </div>
-                                    <div>
-                                        <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-400">Frugal Living</h1>
-                                        <p class="text-xs sm:text-xs text-gray-500 -mt-1 hidden sm:block dark:text-gray-400">Kelola Keuangan Pintar</p>
-                                    </div>
-                                </div>
+                                <img src="logo.png" alt="Frixsave Logo" class="h-10 w-auto object-contain drop-shadow-lg logo-transparent-bg flex-shrink-0 ml-2 lg:ml-0">
                             </div>
                             
                             <div class="flex items-center space-x-4">
                                 <button
                                     onclick="showQuickAddModal()"
-                                    class="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white px-3 sm:px-4 py-2 sm:py-2 rounded-xl sm:rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 relative overflow-hidden group"
+                                    class="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 relative overflow-hidden group"
                                 >
                                     <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                     <div class="relative flex items-center">
-                                        <div class="w-3 h-3 sm:w-4 sm:h-4 bg-white/20 rounded-full flex items-center justify-center mr-1 sm:mr-2 group-hover:rotate-12 transition-transform duration-300">
+                                        <div class="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center sm:mr-2 group-hover:rotate-12 transition-transform duration-300">
                                             <i class="fas fa-paper-plane text-xs"></i>
                                         </div>
-                                        <span class="text-xs sm:text-sm"><span class="hidden xs:inline">Tambah</span><span class="xs:hidden">Quick Add</span></span>
+                                        <span class="hidden sm:inline text-sm">Tambah</span>
                                     </div>
                                 </button>
-                                <div class="flex items-center space-x-3 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/40 dark:bg-slate-700/50 dark:border-slate-600">
+                                <!-- Info Pengguna -->
+                                <div class="flex items-center space-x-3 bg-white/60 backdrop-blur-sm p-2 sm:px-4 sm:py-2 rounded-2xl border border-white/40 dark:bg-slate-700/50 dark:border-slate-600">
                                     <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center">
                                         <i class="fas fa-user text-white text-sm"></i>
                                     </div>
-                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">${appState.user.email}</span>
+                                    <span class="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200">${appState.user.email}</span>
                                 </div>
                             </div>
                         </div>
@@ -1333,7 +1331,7 @@ function initializeAppLogic() {
                                     <i class="fas fa-user text-white text-lg"></i>
                                 </div>
                                 <div class="flex-1 ml-3">
-                                    <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">${appState.user.name || 'Pengguna Frugal'}</p>
+                                    <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">${appState.user.name || 'Pengguna Frixsave'}</p>
                                     <p class="text-sm text-gray-500 truncate dark:text-gray-400">${appState.user.email}</p>
                                 </div>
                             </div>
@@ -1369,7 +1367,7 @@ function initializeAppLogic() {
                 <footer class="lg:ml-72 bg-white/60 backdrop-blur-sm border-t border-white/20 py-6 px-4 sm:px-6 lg:px-8 dark:bg-slate-800/60 dark:border-slate-700">
                     <div class="text-center">
                         <p class="text-sm text-gray-600 dark:text-gray-400">
-                            Frugal Living by <span class="font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">HPUTRAX</span>
+                            Frixsave by <span class="font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">HPUTRAX</span>
                         </p>
                     </div>
                 </footer>
@@ -2784,7 +2782,7 @@ function initializeAppLogic() {
             : `<div class="flex items-center space-x-2 bg-yellow-100 dark:bg-yellow-500/20 px-3 py-1 rounded-full"><div class="w-2 h-2 bg-yellow-500 rounded-full"></div><span class="text-xs font-medium text-yellow-700 dark:text-yellow-300">Mode Lokal</span></div>`;
 
         const hasPin = auth.hasPin();
-        const profile = appState.profile || { name: 'Pengguna Frugal', currency: 'IDR', theme: 'light' };
+        const profile = appState.profile || { name: 'Pengguna Frixsave', currency: 'IDR', theme: 'light' };
         return `
             <div class="space-y-6 sm:space-y-8 fade-in">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -3015,221 +3013,6 @@ function initializeAppLogic() {
                             }
                         </p>
                     </div>
-                    
-                    ${!useSupabase ? `
-                        <!-- Setup Instructions -->
-                        <div class="bg-blue-50 rounded-2xl p-4 mb-6 border border-blue-200">
-                            <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
-                                <i class="fas fa-rocket mr-2"></i>
-                                Cara Setup Supabase (Gratis)
-                            </h4>
-                            <div class="space-y-3 text-sm text-blue-700">
-                                <div class="flex items-start">
-                                    <span class="bg-blue-200 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">1</span>
-                                    <div>
-                                        <p class="font-medium">Buat Akun Supabase</p>
-                                        <p class="text-blue-600">Kunjungi <a href="https://supabase.com" target="_blank" class="underline font-medium">supabase.com</a> dan buat akun gratis</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start">
-                                    <span class="bg-blue-200 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">2</span>
-                                    <div>
-                                        <p class="font-medium">Buat Project Baru</p>
-                                        <p class="text-blue-600">Klik "New Project" dan isi nama project (contoh: "frugal-living")</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start">
-                                    <span class="bg-blue-200 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">3</span>
-                                    <div>
-                                        <p class="font-medium">Buat Tabel Database</p>
-                                        <p class="text-blue-600">Jalankan SQL berikut di SQL Editor:</p>
-                                                        <div class="bg-gray-800 text-green-400 p-3 rounded-xl font-mono text-xs mt-2 overflow-x-auto">
-                                            <div class="text-yellow-400">-- 🗄️ FRUGAL LIVING DATABASE SETUP</div>
-                                            <div class="text-yellow-400">-- Copy and paste this entire script into Supabase SQL Editor</div>
-                                            <br>
-                                            <div class="text-blue-400">-- 1️⃣ Users Table (stores hashed PIN)</div>
-                                            <div>CREATE TABLE IF NOT EXISTS users (</div>
-                                            <div>&nbsp;&nbsp;id TEXT PRIMARY KEY,</div>
-                                            <div>&nbsp;&nbsp;email TEXT UNIQUE NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;name TEXT,</div>
-                                            <div>&nbsp;&nbsp;pin TEXT, -- Kolom untuk menyimpan PIN (opsional, jika ingin disimpan di DB)</div>
-                                            <div>&nbsp;&nbsp;role TEXT DEFAULT 'user',</div>
-                                            <div>&nbsp;&nbsp;created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),</div>
-                                            <div>&nbsp;&nbsp;updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()</div>
-                                            <div>);</div>
-                                            <br>
-                                            <div class="text-blue-400">-- 2️⃣ Transactions Table</div>
-                                            <div>CREATE TABLE IF NOT EXISTS transactions (</div>
-                                            <div>&nbsp;&nbsp;id BIGINT PRIMARY KEY,</div>
-                                            <div>&nbsp;&nbsp;user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,</div>
-                                            <div>&nbsp;&nbsp;type TEXT NOT NULL CHECK (type IN ('income', 'expense')),</div>
-                                            <div>&nbsp;&nbsp;amount DECIMAL(15,2) NOT NULL CHECK (amount > 0),</div>
-                                            <div>&nbsp;&nbsp;category TEXT NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;description TEXT NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;date DATE NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),</div>
-                                            <div>&nbsp;&nbsp;updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()</div>
-                                            <div>);</div>
-                                            <br>
-                                            <div class="text-blue-400">-- 3️⃣ Budgets Table</div>
-                                            <div>CREATE TABLE IF NOT EXISTS budgets (</div>
-                                            <div>&nbsp;&nbsp;id BIGINT PRIMARY KEY,</div>
-                                            <div>&nbsp;&nbsp;user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,</div>
-                                            <div>&nbsp;&nbsp;category TEXT NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;amount DECIMAL(15,2) NOT NULL CHECK (amount > 0),</div>
-                                            <div>&nbsp;&nbsp;description TEXT, -- Deskripsi untuk anggaran</div>
-                                            <div>&nbsp;&nbsp;period TEXT NOT NULL CHECK (period IN ('weekly', 'monthly', 'yearly')),</div>
-                                            <div>&nbsp;&nbsp;created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),</div>
-                                            <div>&nbsp;&nbsp;updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()</div>
-                                            <div>);</div>
-                                            <br>
-                                            <div class="text-blue-400">-- 4️⃣ Goals Table</div>
-                                            <div>CREATE TABLE IF NOT EXISTS goals (</div>
-                                            <div>&nbsp;&nbsp;id BIGINT PRIMARY KEY,</div>
-                                            <div>&nbsp;&nbsp;user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,</div>
-                                            <div>&nbsp;&nbsp;title TEXT NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;target_amount DECIMAL(15,2) NOT NULL CHECK (target_amount > 0),</div>
-                                            <div>&nbsp;&nbsp;current_amount DECIMAL(15,2) DEFAULT 0 CHECK (current_amount >= 0),</div>
-                                            <div>&nbsp;&nbsp;deadline DATE NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),</div>
-                                            <div>&nbsp;&nbsp;updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()</div>
-                                            <div>);</div>
-                                            <br>
-                                            <div class="text-blue-400">-- 5️⃣ Receivables Table (Piutang)</div>
-                                            <div>CREATE TABLE IF NOT EXISTS receivables (</div>
-                                            <div>&nbsp;&nbsp;id BIGINT PRIMARY KEY,</div>
-                                            <div>&nbsp;&nbsp;user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,</div>
-                                            <div>&nbsp;&nbsp;debtor_name TEXT NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;amount DECIMAL(15,2) NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;due_date DATE NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;description TEXT,</div>
-                                            <div>&nbsp;&nbsp;status TEXT NOT NULL DEFAULT 'unpaid' CHECK (status IN ('unpaid', 'paid')),</div>
-                                            <div>&nbsp;&nbsp;created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),</div>
-                                            <div>&nbsp;&nbsp;updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()</div>
-                                            <div>);</div>
-                                            <br>
-                                            <div class="text-blue-400">-- 6️⃣ Debts Table (Utang)</div>
-                                            <div>CREATE TABLE IF NOT EXISTS debts (</div>
-                                            <div>&nbsp;&nbsp;id BIGINT PRIMARY KEY,</div>
-                                            <div>&nbsp;&nbsp;user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,</div>
-                                            <div>&nbsp;&nbsp;creditor_name TEXT NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;amount DECIMAL(15,2) NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;due_date DATE NOT NULL,</div>
-                                            <div>&nbsp;&nbsp;description TEXT,</div>
-                                            <div>&nbsp;&nbsp;status TEXT NOT NULL DEFAULT 'unpaid' CHECK (status IN ('unpaid', 'paid')),</div>
-                                            <div>&nbsp;&nbsp;created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),</div>
-                                            <div>&nbsp;&nbsp;updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()</div>
-                                            <div>);</div>
-                                            <br>
-                                            <div class="text-purple-400">-- 6️⃣ Create Indexes for Better Performance</div>
-                                            <div>CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);</div>
-                                            <div>CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date DESC);</div>
-                                            <div>CREATE INDEX IF NOT EXISTS idx_budgets_user_id ON budgets(user_id);</div>
-                                            <div>CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id);</div>
-                                            <div>CREATE INDEX IF NOT EXISTS idx_receivables_user_id ON receivables(user_id);</div>
-                                            <br>
-                                            <div class="text-purple-400">-- 7️⃣ Enable Row Level Security (RLS) - PENTING UNTUK KEAMANAN</div>
-                                            <div>ALTER TABLE users ENABLE ROW LEVEL SECURITY;</div>
-                                            <div>ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;</div>
-                                            <div>ALTER TABLE budgets ENABLE ROW LEVEL SECURITY;</div>
-                                            <div>ALTER TABLE goals ENABLE ROW LEVEL SECURITY;</div>
-                                            <div>ALTER TABLE receivables ENABLE ROW LEVEL SECURITY;</div>
-                                            <div>ALTER TABLE debts ENABLE ROW LEVEL SECURITY;</div>
-                                            <br>
-                                            <div class="text-orange-400">-- 8️⃣ Create RLS Policies (Optional - for enhanced security)</div>
-                                            <div>-- Users can only see their own data</div>
-                                            <div>CREATE POLICY "Users can view own data" ON users FOR ALL USING (true);</div>
-                                            <div>CREATE POLICY "Users can manage own transactions" ON transactions FOR ALL USING (true);</div>
-                                            <div>CREATE POLICY "Users can manage own budgets" ON budgets FOR ALL USING (true);</div>
-                                            <div>CREATE POLICY "Users can manage own goals" ON goals FOR ALL USING (true);</div>
-                                            <div>CREATE POLICY "Users can manage own receivables" ON receivables FOR ALL USING (true);</div>
-                                            <div>CREATE POLICY "Users can manage own debts" ON debts FOR ALL USING (true);</div>
-                                            <br>
-                                            <div class="text-green-400">-- 9️⃣ Insert Sample Users with PINs (Optional)</div>
-                                            <div>INSERT INTO users (id, email, name, pin, role) VALUES</div>
-                                            <div>&nbsp;&nbsp;('demo_frugal_com', 'demo@frugal.com', 'Demo User', '123456', 'user'),</div>
-                                            <div>&nbsp;&nbsp;('admin_frugal_com', 'admin@frugal.com', 'Admin User', '999999', 'admin'),</div>
-                                            <div>&nbsp;&nbsp;('user_example_com', 'user@example.com', 'Example User', '000000', 'user'),</div>
-                                            <div>&nbsp;&nbsp;('test_budget_com', 'test@budget.com', 'Test User', '000000', 'user')</div>
-                                            <div>ON CONFLICT (id) DO NOTHING;</div>
-                                            <br>
-                                            <div class="text-green-400">-- ✅ Setup Complete! Your database is ready for Frugal Living</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex items-start">
-                                    <span class="bg-blue-200 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">4</span>
-                                    <div>
-                                        <p class="font-medium">Ambil Credentials</p>
-                                        <p class="text-blue-600">Di Settings → API, copy URL dan anon key</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start">
-                                    <span class="bg-blue-200 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">5</span>
-                                    <div>
-                                        <p class="font-medium">Update Kode</p>
-                                        <p class="text-blue-600">Ganti SUPABASE_URL dan SUPABASE_ANON_KEY di kode</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
-                    
-                    <!-- Quick Setup Guide -->
-                    <div class="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200">
-                        <h4 class="font-semibold text-indigo-800 mb-3 flex items-center">
-                            <i class="fas fa-zap mr-2"></i>
-                            Quick Setup Guide (5 Menit)
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div class="space-y-3">
-                                <div class="flex items-start space-x-3">
-                                    <div class="w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</div>
-                                    <div>
-                                        <p class="font-medium text-indigo-800">Buat Akun Supabase</p>
-                                        <p class="text-indigo-600 text-xs">Gratis di <a href="https://supabase.com" target="_blank" class="underline font-medium">supabase.com</a></p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start space-x-3">
-                                    <div class="w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</div>
-                                    <div>
-                                        <p class="font-medium text-indigo-800">Buat Project Baru</p>
-                                        <p class="text-indigo-600 text-xs">Klik "New Project" → Isi nama project</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start space-x-3">
-                                    <div class="w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</div>
-                                    <div>
-                                        <p class="font-medium text-indigo-800">Jalankan SQL Script</p>
-                                        <p class="text-indigo-600 text-xs">Copy script di atas ke SQL Editor</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="flex items-start space-x-3">
-                                    <div class="w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</div>
-                                    <div>
-                                        <p class="font-medium text-indigo-800">Ambil Credentials</p>
-                                        <p class="text-indigo-600 text-xs">Settings → API → Copy URL & anon key</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start space-x-3">
-                                    <div class="w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">5</div>
-                                    <div>
-                                        <p class="font-medium text-indigo-800">Update Kode</p>
-                                        <p class="text-indigo-600 text-xs">Ganti SUPABASE_URL & SUPABASE_ANON_KEY</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start space-x-3">
-                                    <div class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</div>
-                                    <div>
-                                        <p class="font-medium text-green-800">Selesai!</p>
-                                        <p class="text-green-600 text-xs">Data otomatis tersinkronisasi ke cloud</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Debug & Troubleshooting Panel -->
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
@@ -3302,32 +3085,10 @@ function initializeAppLogic() {
                                 <p class="text-xs text-gray-500 text-center">Muat ulang dari storage</p>
                             </button>
                         </div>
-                        
-                        <!-- Console Instructions -->
-                        <div class="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
-                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
-                                <i class="fas fa-terminal mr-2"></i>
-                                Cara Cek Data di Console Browser
-                            </h4>
-                            <div class="space-y-2 text-sm text-gray-600">
-                                <p><strong>1.</strong> Tekan <kbd class="bg-gray-200 px-2 py-1 rounded text-xs">F12</kbd> atau klik kanan → Inspect Element</p>
-                                <p><strong>2.</strong> Buka tab <strong>Console</strong></p>
-                                <p><strong>3.</strong> Ketik perintah berikut untuk cek data:</p>
-                                <div class="bg-gray-800 text-green-400 p-3 rounded-xl font-mono text-xs mt-2 overflow-x-auto">
-                                    <div>// Cek semua data user saat ini</div>
-                                    <div>checkDataIntegrity()</div>
-                                    <br>
-                                    <div>// Lihat localStorage langsung</div>
-                                    <div>console.log(localStorage)</div>
-                                    <br>
-                                    <div>// Cek data transaksi spesifik</div>
-                                    <div>console.log(JSON.parse(localStorage.getItem('transactions_' + appState.user.id)))</div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 ` : ''}
 
+                
                 ${appState.user?.role === 'admin' ? `
                 <!-- Manual PIN Hasher (Admin Tool) -->
                 <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
@@ -3609,7 +3370,7 @@ function initializeAppLogic() {
                             <i class="fas fa-crown text-yellow-500 mr-3"></i>
                             Admin Dashboard
                         </h1>
-                        <p class="text-gray-600 text-sm sm:text-base mt-1">Kelola dan pantau seluruh sistem Frugal Living</p>
+                        <p class="text-gray-600 text-sm sm:text-base mt-1">Kelola dan pantau seluruh sistem Frixsave</p>
                     </div>
                     <div class="flex items-center space-x-2 bg-gradient-to-r from-yellow-100 to-orange-100 px-4 py-2 rounded-2xl border border-yellow-200">
                         <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -3837,7 +3598,7 @@ function initializeAppLogic() {
                                 const hasPin = !!user.pin;
 
                                 const isAdminUser = role === 'admin';
-                                const isDefaultUser = ['demo@frugal.com', 'user@example.com', 'test@budget.com'].includes(email);
+                                const isDefaultUser = ['demo@frixsave.com', 'user@example.com', 'test@budget.com'].includes(email);
 
                                 return `
                                     <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300">
@@ -3845,13 +3606,13 @@ function initializeAppLogic() {
                                             <!-- User Info Header -->
                                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                                 <div class="flex items-center space-x-4">
-                                                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-${email === 'demo@frugal.com' ? 'blue' : email === 'user@example.com' ? 'purple' : email.includes('admin') ? 'yellow' : 'green'}-400 to-${email === 'demo@frugal.com' ? 'indigo' : email === 'user@example.com' ? 'pink' : email.includes('admin') ? 'orange' : 'emerald'}-500 rounded-2xl flex items-center justify-center shadow-lg">
+                                                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-${email === 'demo@frixsave.com' ? 'blue' : email === 'user@example.com' ? 'purple' : email.includes('admin') ? 'yellow' : 'green'}-400 to-${email === 'demo@frixsave.com' ? 'indigo' : email === 'user@example.com' ? 'pink' : email.includes('admin') ? 'orange' : 'emerald'}-500 rounded-2xl flex items-center justify-center shadow-lg">
                                                         <i class="fas fa-${email.includes('admin') ? 'crown' : 'user'} text-white text-lg sm:text-xl"></i>
                                                     </div>
                                                     <div>
                                                         <div class="flex items-center space-x-2">
                                                             <h4 class="font-semibold text-gray-800 text-sm sm:text-base">${email}</h4>
-                                                            ${email === 'admin@frugal.com' ?
+                                                            ${email === 'admin@frixsave.com' ?
                                                                 '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-bold">👑 Admin Utama</span>' :
                                                                 isDefaultUser ?
                                                                 '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Default</span>' :
@@ -3884,7 +3645,7 @@ function initializeAppLogic() {
                                                 <button onclick="exportUserData('${email}')" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                                                     <i class="fas fa-download mr-1"></i>Export
                                                 </button>
-                                                ${email !== 'admin@frugal.com' && !isDefaultUser ? `
+                                                ${email !== 'admin@frixsave.com' && !isDefaultUser ? `
                                                     <button onclick="deleteUser('${email}')" class="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                                                         <i class="fas fa-trash mr-1"></i>Hapus
                                                     </button>
@@ -4130,7 +3891,7 @@ function initializeAppLogic() {
             errorDiv.classList.add('hidden');
             showPinModal(email);
         } else {
-            errorText.textContent = result.error || 'Email tidak terdaftar. Gunakan: demo@frugal.com, user@example.com, atau test@budget.com';
+            errorText.textContent = result.error || 'Email tidak terdaftar. Gunakan: demo@frixsave.com, user@example.com, atau test@budget.com';
             errorDiv.classList.remove('hidden');
         }
     }
@@ -4170,7 +3931,7 @@ function initializeAppLogic() {
                         </div>
                         <h3 class="text-2xl font-bold text-gray-800 mb-2">🔐 Masukkan PIN</h3>
                         <p class="text-gray-600">Akun <span class="font-semibold text-indigo-600">${email}</span> dilindungi PIN</p>
-                        ${email === 'demo@frugal.com' ? `
+                        ${email === 'demo@frixsave.com' ? `
                             <div class="mt-4 p-3 bg-blue-50 rounded-2xl border border-blue-200">
                                 <p class="text-blue-700 text-sm">💡 <strong>Hint:</strong> PIN untuk akun demo adalah <strong>123456</strong>.</p>
                             </div>
@@ -4248,11 +4009,11 @@ function initializeAppLogic() {
                         <p class="text-xs text-gray-500 text-center mb-3">Quick Access:</p>
                         <button
                             type="button"
-                            onclick="document.getElementById('modal-pin-input').value = '${email === 'demo@frugal.com' ? '123456' : email === 'admin@frugal.com' ? '999999' : '000000'}'; document.getElementById('modal-pin-input').focus();"
-                            class="w-full bg-gradient-to-r from-${email === 'demo@frugal.com' ? 'blue' : email === 'admin@frugal.com' ? 'yellow' : 'gray'}-100 to-${email === 'demo@frugal.com' ? 'indigo' : email === 'admin@frugal.com' ? 'orange' : 'gray'}-100 hover:from-${email === 'demo@frugal.com' ? 'blue' : email === 'admin@frugal.com' ? 'yellow' : 'gray'}-200 hover:to-${email === 'demo@frugal.com' ? 'indigo' : email === 'admin@frugal.com' ? 'orange' : 'gray'}-200 text-${email === 'demo@frugal.com' ? 'indigo' : email === 'admin@frugal.com' ? 'orange' : 'gray'}-700 py-2 rounded-xl font-semibold text-sm transition-all duration-300 border border-${email === 'demo@frugal.com' ? 'indigo' : email === 'admin@frugal.com' ? 'orange' : 'gray'}-200"
+                            onclick="document.getElementById('modal-pin-input').value = '${email === 'demo@frixsave.com' ? '123456' : email === 'admin@frugal.com' ? '999999' : '000000'}'; document.getElementById('modal-pin-input').focus();"
+                            class="w-full bg-gradient-to-r from-${email === 'demo@frixsave.com' ? 'blue' : email === 'admin@frugal.com' ? 'yellow' : 'gray'}-100 to-${email === 'demo@frixsave.com' ? 'indigo' : email === 'admin@frugal.com' ? 'orange' : 'gray'}-100 hover:from-${email === 'demo@frixsave.com' ? 'blue' : email === 'admin@frugal.com' ? 'yellow' : 'gray'}-200 hover:to-${email === 'demo@frixsave.com' ? 'indigo' : email === 'admin@frugal.com' ? 'orange' : 'gray'}-200 text-${email === 'demo@frixsave.com' ? 'indigo' : email === 'admin@frugal.com' ? 'orange' : 'gray'}-700 py-2 rounded-xl font-semibold text-sm transition-all duration-300 border border-${email === 'demo@frixsave.com' ? 'indigo' : email === 'admin@frugal.com' ? 'orange' : 'gray'}-200"
                         >
                             <i class="fas fa-${email === 'admin@frugal.com' ? 'crown' : 'magic'} mr-2"></i>
-                            Isi PIN ${email === 'demo@frugal.com' ? 'Demo' : email === 'admin@frugal.com' ? 'Admin' : 'Default'} Otomatis
+                            Isi PIN ${email === 'demo@frixsave.com' ? 'Demo' : email === 'admin@frugal.com' ? 'Admin' : 'Default'} Otomatis
                         </button>
                     </div>
                 </div>
@@ -5797,7 +5558,7 @@ function initializeAppLogic() {
             return;
         }
 
-        const isAdminUser = email === 'admin@frugal.com';
+        const isAdminUser = email === 'admin@frixsave.com';
         if (isAdminUser) {
             showSyncStatus('error', 'Akun admin utama tidak dapat dihapus!');
             return;
@@ -5841,7 +5602,7 @@ function initializeAppLogic() {
             return;
         }
 
-        if (email === 'admin@frugal.com') {
+        if (email === 'admin@frixsave.com') {
             showSyncStatus('info', 'User ini sudah menjadi admin utama.');
             return;
         }
