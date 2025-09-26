@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frugal Living - Aplikasi Budgeting Cerdas</title>
+    <title>Frixsave - Aplikasi Budgeting Cerdas</title>
 
     <!-- Security Headers -->
     <meta http-equiv="Content-Security-Policy" content="
@@ -18,21 +18,21 @@
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
     <!-- SEO & Social Media Meta Tags -->
-    <meta name="description" content="Kendalikan keuangan Anda dengan Frugal Living. Lacak pengeluaran, buat anggaran, dan capai target finansial dengan mudah. Aplikasi budgeting all-in-one yang cerdas dan aman.">
-    <meta name="keywords" content="budgeting, anggaran, keuangan, hemat, frugal living, lacak pengeluaran, manajer keuangan, aplikasi finansial">
+    <meta name="description" content="Kendalikan keuangan Anda dengan Frixsave. Lacak pengeluaran, buat anggaran, dan capai target finansial dengan mudah. Aplikasi budgeting all-in-one yang cerdas dan aman.">
+    <meta name="keywords" content="budgeting, anggaran, keuangan, hemat, frixsave, lacak pengeluaran, manajer keuangan, aplikasi finansial">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://your-app-url.com/"> <!-- ❗ Ganti dengan URL aplikasi Anda -->
-    <meta property="og:title" content="Frugal Living - Aplikasi Budgeting Cerdas untuk Keuangan Anda">
-    <meta property="og:description" content="Kendalikan keuangan Anda dengan Frugal Living. Lacak pengeluaran, buat anggaran, dan capai target finansial dengan mudah.">
+    <meta property="og:title" content="Frixsave - Aplikasi Budgeting Cerdas untuk Keuangan Anda">
+    <meta property="og:description" content="Kendalikan keuangan Anda dengan Frixsave. Lacak pengeluaran, buat anggaran, dan capai target finansial dengan mudah.">
     <meta property="og:image" content="https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=1200&auto=format&fit=crop"> <!-- ❗ Ganti dengan URL gambar promosi Anda (misal: screenshot aplikasi) -->
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://your-app-url.com/"> <!-- ❗ Ganti dengan URL aplikasi Anda -->
-    <meta property="twitter:title" content="Frugal Living - Aplikasi Budgeting Cerdas untuk Keuangan Anda">
-    <meta property="twitter:description" content="Kendalikan keuangan Anda dengan Frugal Living. Lacak pengeluaran, buat anggaran, dan capai target finansial dengan mudah.">
+    <meta property="twitter:title" content="Frixsave - Aplikasi Budgeting Cerdas untuk Keuangan Anda">
+    <meta property="twitter:description" content="Kendalikan keuangan Anda dengan Frixsave. Lacak pengeluaran, buat anggaran, dan capai target finansial dengan mudah.">
     <meta property="twitter:image" content="https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=1200&auto=format&fit=crop"> <!-- ❗ Ganti dengan URL gambar promosi Anda -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.165.0/three.min.js"></script>
@@ -40,7 +40,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 576 512%22><path fill=%22%234f46e5%22 d=%22M512 160c-17.7 0-32 14.3-32 32s14.3 32 32 32s32-14.3 32-32s-14.3-32-32-32zm-40.1 48.1c-17.6-4.4-29.9-21.5-25.5-39.1s21.5-29.9 39.1-25.5s29.9 21.5 25.5 39.1s-21.5 29.9-39.1 25.5zM320 64c0-35.3-28.7-64-64-64S192 28.7 192 64H320zm-64 32c17.7 0 32-14.3 32-32s-14.3-32-32-32s-32 14.3-32 32s14.3 32 32 32zM160 128H32C14.3 128 0 142.3 0 160V352c0 17.7 14.3 32 32 32h96v32c0 17.7 14.3 32 32 32s32-14.3 32-32V384h32c70.7 0 128-57.3 128-128c0-44.2-22.5-83.4-56.7-106.8c-1.4-1-2.8-2-4.2-3.1c-18.2-14.1-40-22.1-63.1-22.1H160zm0 64h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H160v64h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H160V192z%22/></svg>">
+    <!-- Favicon -->
+    <link rel="icon" href="icon.png" type="image/png">
 </head>
 <body class="gradient-bg-landing text-gray-800">
 
@@ -51,10 +52,8 @@
     <header id="main-header" class="absolute top-0 left-0 w-full z-30 py-6 px-4 sm:px-6 lg:px-8 transition-all duration-300">
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center">
-                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
-                    <i class="fas fa-piggy-bank text-white text-lg"></i>
-                </div>
-                <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Frugal Living</h1>
+                <!-- Logo -->
+                <img src="logo.png" alt="Frixsave Logo" class="h-10 w-auto object-contain drop-shadow-lg logo-transparent-bg flex-shrink-0">
             </div>
             <a href="app.html" class="animated-gradient-btn bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
                 Masuk Aplikasi
@@ -68,7 +67,7 @@
             <h2 class="text-4xl md:text-6xl font-extrabold mb-4 leading-tight opacity-0">
                 Kelola Keuangan dengan <span class="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent animated-text-breathe">Cerdas</span>
             </h2>
-            <p id="typing-effect" class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto mb-8 opacity-0 min-h-[6rem] md:min-h-[4rem]">
+            <p id="typing-effect" class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto mb-8 opacity-0 min-h-[12rem] md:min-h-[8rem]">
                 <!-- Text will be typed here by JS -->
             </p>
             <a href="#pricing" class="inline-block bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-bold py-3 px-8 text-base md:py-4 md:px-10 md:text-lg rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 opacity-0">
@@ -129,12 +128,72 @@
         </div>
     </section>
 
+    <!-- Slogans Section -->
+    <section id="slogans" class="py-20 bg-gray-50/50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 fade-in-section">
+                <h3 class="text-3xl font-bold mb-2">Revolusi Keuangan Anda</h3>
+                <p class="text-gray-600">Lebih dari sekadar aplikasi, ini adalah mindset baru.</p>
+                <div class="w-24 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mx-auto mt-4"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Slogan 1 & 2 -->
+                <div class="space-y-8">
+                    <div class="bg-white/70 backdrop-blur-lg rounded-2xl p-8 shadow-lg border border-white/30 fade-in-section" style="transition-delay: 100ms;">
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md">
+                                <i class="fas fa-rocket text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-2">Bukan sekadar menabung. Ini revolusi keuangan Anda.</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white/70 backdrop-blur-lg rounded-2xl p-8 shadow-lg border border-white/30 fade-in-section" style="transition-delay: 200ms;">
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md">
+                                <i class="fas fa-wallet text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-2">Inovasi di saku Anda, simpanan ekstra di rekening Anda.</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Slogan 3 & 4 -->
+                <div class="space-y-8">
+                    <div class="bg-white/70 backdrop-blur-lg rounded-2xl p-8 shadow-lg border border-white/30 fade-in-section" style="transition-delay: 300ms;">
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md">
+                                <i class="fas fa-search-dollar text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-2">Frixsave: Ambil alih kendali, temukan dana tersembunyi.</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white/70 backdrop-blur-lg rounded-2xl p-8 shadow-lg border border-white/30 fade-in-section" style="transition-delay: 400ms;">
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-500 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md">
+                                <i class="fas fa-flag text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-2">Stop managing money. Start a financial revolution.</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Pricing Section -->
     <section id="pricing" class="py-20">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-3xl mx-auto text-center fade-in-section">
                 <h3 class="text-3xl font-bold mb-2">Penawaran Spesial Terbatas!</h3>
-                <p class="text-gray-600">Dapatkan akses penuh ke semua fitur Frugal Living selamanya.</p>
+                <p class="text-gray-600">Dapatkan akses penuh ke semua fitur Frixsave selamanya.</p>
                 <div class="w-24 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mx-auto mt-4"></div>
             </div>
 
@@ -158,7 +217,7 @@
                         <li class="flex items-center justify-center"><i class="fas fa-check-circle text-green-500 mr-3"></i>Dukungan Penuh</li>
                     </ul>
                     <!-- ❗ Ganti 62... dengan nomor WhatsApp Anda -->
-                    <a href="https://wa.me/6289674135929?text=Halo%2C%20saya%20tertarik%20dengan%20penawaran%20diskon%20lifetime%20Rp%2025.000%20untuk%20aplikasi%20Frugal%20Living." target="_blank" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3 px-8 text-base md:py-4 md:px-10 md:text-lg rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105">
+                    <a href="https://wa.me/6289674135929?text=Halo%2C%20saya%20tertarik%20dengan%20penawaran%20diskon%20lifetime%20Rp%2025.000%20untuk%20aplikasi%20Frixsave." target="_blank" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3 px-8 text-base md:py-4 md:px-10 md:text-lg rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105">
                         Pesan Sekarang <i class="fab fa-whatsapp ml-2"></i>
                     </a>
                 </div>
@@ -171,7 +230,7 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12 fade-in-section">
                 <h3 class="text-3xl font-bold mb-2">Apa Kata Mereka?</h3>
-                <p class="text-gray-600">Lihat bagaimana Frugal Living membantu pengguna kami.</p>
+                <p class="text-gray-600">Lihat bagaimana Frixsave membantu pengguna kami.</p>
                 <div class="w-24 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mx-auto mt-4"></div>
             </div>
 
@@ -204,7 +263,7 @@
                             <p class="text-sm text-gray-500">Freelancer</p>
                         </div>
                     </div>
-                    <p class="text-gray-600 italic mb-4">"Sebagai freelancer, pendapatan saya tidak menentu. Frugal Living membantu saya mengelola cash flow dan melacak piutang dengan sangat efektif. Highly recommended!"</p>
+                    <p class="text-gray-600 italic mb-4">"Sebagai freelancer, pendapatan saya tidak menentu. Frixsave membantu saya mengelola cash flow dan melacak piutang dengan sangat efektif. Highly recommended!"</p>
                     <div class="text-yellow-400">
                         <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
                     </div>
@@ -299,7 +358,7 @@
                         Dapatkan akses lifetime hanya dengan sekali bayar. Mulai perjalanan finansial Anda yang lebih baik hari ini!
                     </p>
                     <!-- ❗ Ganti 62... dengan nomor WhatsApp Anda -->
-                    <a href="https://wa.me/6289674135929?text=Halo%2C%20saya%20tertarik%20dengan%20penawaran%20diskon%20lifetime%20Rp%2025.000%20untuk%20aplikasi%20Frugal%20Living." target="_blank" class="bg-white hover:bg-gray-100 text-green-600 font-bold py-3 px-8 text-base md:py-4 md:px-10 md:text-lg rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+                    <a href="https://wa.me/6289674135929?text=Halo%2C%20saya%20tertarik%20dengan%20penawaran%20diskon%20lifetime%20Rp%2025.000%20untuk%20aplikasi%20Frixsave." target="_blank" class="bg-white hover:bg-gray-100 text-green-600 font-bold py-3 px-8 text-base md:py-4 md:px-10 md:text-lg rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
                         Amankan Penawaran <i class="fab fa-whatsapp ml-2"></i>
                     </a>
                 </div>
@@ -311,7 +370,7 @@
     <footer class="py-8">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <p class="text-gray-600">
-                &copy; 2025 Frugal Living by <span class="font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">HPUTRAX</span>.
+                &copy; 2025 Frixsave by <span class="font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">HPUTRAX</span>.
             </p>
         </div>
     </footer>
