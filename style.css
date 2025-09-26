@@ -164,3 +164,32 @@ details[open] > summary .accordion-icon {
     from { opacity: 1; transform: translateY(0); }
     to { opacity: 0; transform: translateY(-15px); }
 }
+
+/* Animation for the word "Cerdas" */
+@keyframes text-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+.animated-text-breathe {
+  display: inline-block; /* Necessary for transform to work correctly */
+  animation: text-breathe 4s ease-in-out infinite;
+}
+
+/* Typing effect cursor */
+.typing-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.25em; /* Match the line height */
+    background-color: #4f46e5; /* Indigo color */
+    animation: blink 0.7s infinite;
+    vertical-align: bottom;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
