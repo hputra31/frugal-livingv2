@@ -315,17 +315,21 @@ function initializeAppLogic() {
             { type: 'expense', name: '🏥 Kesehatan' },
             { type: 'expense', name: '📚 Pendidikan' },
             { type: 'expense', name: '🎁 Hadiah' },
+            { type: 'expense', name: '🤲 Berbagi' },
             { type: 'expense', name: '🏠 Rumah Tangga' },
             { type: 'expense', name: '📱 Top Up' },
             { type: 'expense', name: '💳 E-Wallet' },
             { type: 'expense', name: '🤝 Arisan' },
             { type: 'expense', name: '📦 Lainnya' },
             // Income Categories
+            { type: 'income', name: 'Piutang' },
             { type: 'income', name: '💰 Gaji' },
             { type: 'income', name: '📈 Investasi' },
             { type: 'income', name: '💸 Bonus' },
             { type: 'income', name: '🤝 Arisan' },
             { type: 'income', name: '🪙 Lainnya' },
+            // Expense Categories for Debt/Receivable
+            { type: 'expense', name: 'Utang' },
         ],
         transactionManagement: {
             currentPage: 1,
@@ -740,6 +744,9 @@ function initializeAppLogic() {
             // Simpan seluruh data user dari DB ke appState
             appState.user = dbUser;
 
+            // Simpan sesi user ke localStorage untuk persistensi
+            localStorage.setItem('frixsave_user', JSON.stringify(dbUser));
+
             if (userRole === 'admin') {
                 appState.currentPage = 'admin-dashboard';
             }
@@ -748,6 +755,9 @@ function initializeAppLogic() {
         },
         logout: async function() {
             await unsubscribeAll();
+
+            // Hapus sesi user dari localStorage
+            localStorage.removeItem('frixsave_user');
             
             // Reset the entire app state to its initial condition
             appState = {
@@ -911,6 +921,7 @@ function initializeAppLogic() {
         }
     }
 
+    window.deleteTransaction = deleteTransaction;
     async function deleteTransaction(id) {
         showConfirmModal({
             title: 'Hapus Transaksi?',
@@ -1001,30 +1012,6 @@ function initializeAppLogic() {
                 }
             }
         });
-    }
-
-    async function updateReceivableStatus(receivableId, status) {
-        if (!appState.user) return;
-
-        try {
-            if (useSupabase) {
-                const { data, error } = await api.updateReceivable(receivableId, { status });
-                if (error) {
-                    showSyncStatus('error', 'Gagal sync update status piutang');
-                    console.error('Supabase receivable update error:', error);
-                } else {
-                    await loadUserData();
-                    render();
-                    showSyncStatus('success', 'Status piutang diperbarui & disinkronisasi');
-                }
-            }
-        } catch (error) {
-            console.error('Error updating receivable status:', error);
-            showSyncStatus('error', 'Gagal memperbarui status piutang');
-        } finally {
-            // Re-render the UI after the operation is complete
-            render();
-        }
     }
 
     async function deleteReceivable(receivableId) {
@@ -2182,20 +2169,34 @@ function initializeAppLogic() {
                         today.setHours(0,0,0,0);
                         const isOverdue = !isPaid && dueDate < today;
                         const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                        const currentAmount = receivable.current_amount || 0;
+                        const progress = receivable.amount > 0 ? (currentAmount / receivable.amount) * 100 : 0;
 
                         return `
-                            <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20 dark:border-slate-700 flex flex-col ${isPaid ? 'opacity-60' : ''}">
+                            <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20 dark:border-slate-700 flex flex-col transition-all duration-300 ${isPaid ? 'bg-green-50/50 dark:bg-green-900/20' : ''}">
                                 <div class="flex justify-between items-start mb-3">
                                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${receivable.debtor_name}</h3>
                                     <span class="text-xs px-2 py-1 rounded-full font-medium ${isPaid ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300' : isOverdue ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300'}">${isPaid ? 'Lunas' : isOverdue ? 'Terlewat' : `${daysDiff} hari lagi`}</span>
                                 </div>
                                 <div class="flex-grow space-y-3">
-                                    <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">Rp ${(receivable.amount * 1000).toLocaleString('id-ID')}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">Jatuh Tempo: ${dueDate.toLocaleDateString('id-ID')}</p>
+                                    <div class="flex justify-between items-baseline">
+                                        <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">Rp ${(receivable.amount * 1000).toLocaleString('id-ID')}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Jatuh Tempo: ${dueDate.toLocaleDateString('id-ID')}</p>
+                                    </div>
+                                    <!-- Progress Bar -->
+                                    <div class="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-3.5">
+                                        <div class="bg-gradient-to-r from-green-400 to-emerald-500 h-3.5 rounded-full" style="width: ${progress}%"></div>
+                                    </div>
+                                    <div class="flex justify-between text-xs">
+                                        <span class="text-gray-600 dark:text-gray-400">Terbayar: <span class="font-semibold text-gray-800 dark:text-gray-200">Rp ${(currentAmount * 1000).toLocaleString('id-ID')}</span></span>
+                                        <span class="font-bold text-green-600 dark:text-green-400">${progress.toFixed(1)}%</span>
+                                    </div>
                                     ${receivable.description ? `<p class="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/50 p-2 rounded-lg">${receivable.description}</p>` : ''}
                                 </div>
                                 <div class="mt-4 pt-4 border-t border-gray-200/80 dark:border-slate-700/80 flex items-center gap-2">
-                                    ${!isPaid ? `<button onclick="handleMarkAsPaid(${receivable.id})" class="flex-1 bg-green-100 hover:bg-green-200 text-green-700 font-semibold px-3 py-2 rounded-xl transition-all duration-300 text-sm"><i class="fas fa-check mr-1"></i> Tandai Lunas</button>` : ''}
+                                    ${!isPaid ? `<button onclick="showAddInstallmentModal(${receivable.id})" class="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold px-3 py-2 rounded-xl transition-all duration-300 text-sm"><i class="fas fa-plus mr-1"></i> Cicilan</button>` : ''}
+                                    ${!isPaid ? `<button onclick="handleMarkAsPaid(${receivable.id})" class="flex-1 bg-green-100 hover:bg-green-200 text-green-700 font-semibold px-3 py-2 rounded-xl transition-all duration-300 text-sm"><i class="fas fa-check-double mr-1"></i> Lunasi</button>` : ''}
+                                    <button onclick="showEditReceivableModal(${receivable.id})" class="flex-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 font-semibold px-3 py-2 rounded-xl transition-all duration-300 text-sm"><i class="fas fa-edit mr-1"></i> Edit</button>
                                     <button onclick="handleDeleteReceivable(${receivable.id})" class="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold px-3 py-2 rounded-xl transition-all duration-300 text-sm"><i class="fas fa-trash mr-1"></i> Hapus</button>
                                 </div>
                             </div>
@@ -2223,11 +2224,11 @@ function initializeAppLogic() {
         const totalUnpaid = appState.debts.filter(d => d.status === 'unpaid').reduce((sum, d) => sum + d.amount, 0);
         const totalPaid = appState.debts.filter(d => d.status === 'paid').reduce((sum, d) => sum + d.amount, 0);
 
-        return `
+        return ` 
             <div class="space-y-6 fade-in">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
-                        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent dark:from-red-400 dark:to-orange-400">Manajemen Utang</h1>
+                        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent dark:from-red-400 dark:to-orange-400">Catatan Utang</h1>
                         <p class="text-gray-600 text-sm sm:text-base mt-1 dark:text-gray-400">Kelola dan lacak semua kewajiban Anda</p>
                     </div>
                     <div class="flex flex-col sm:flex-row items-center gap-3">
@@ -2242,12 +2243,26 @@ function initializeAppLogic() {
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20 dark:border-slate-700">
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Utang (Belum Lunas)</p>
-                        <p class="text-2xl font-bold text-red-600 dark:text-red-400">Rp ${(totalUnpaid * 1000).toLocaleString('id-ID')}</p>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Utang (Belum Lunas)</p>
+                                <p class="text-2xl font-bold text-red-600 dark:text-red-400">Rp ${(totalUnpaid * 1000).toLocaleString('id-ID')}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-orange-400 to-red-500 p-4 rounded-2xl shadow-lg">
+                                <i class="fas fa-hourglass-half text-white text-xl"></i>
+                            </div>
+                        </div>
                     </div>
                     <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20 dark:border-slate-700">
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Sudah Dibayar</p>
-                        <p class="text-2xl font-bold text-green-600 dark:text-green-400">Rp ${(totalPaid * 1000).toLocaleString('id-ID')}</p>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Sudah Dibayar</p>
+                                <p class="text-2xl font-bold text-green-600 dark:text-green-400">Rp ${(totalPaid * 1000).toLocaleString('id-ID')}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-green-400 to-emerald-500 p-4 rounded-2xl shadow-lg">
+                                <i class="fas fa-check-circle text-white text-xl"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2283,7 +2298,7 @@ function initializeAppLogic() {
                         const isOverdue = !isPaid && dueDate < today;
                         const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
 
-                        return `
+                        return ` 
                             <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20 dark:border-slate-700 flex flex-col ${isPaid ? 'opacity-60' : ''}">
                                 <div class="flex justify-between items-start mb-3">
                                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${debt.creditor_name}</h3>
@@ -4465,7 +4480,8 @@ function initializeAppLogic() {
 
         const receivable = {
             debtor_name: document.getElementById('receivable-debtor').value.trim(),
-            amount: parseFloat(document.getElementById('receivable-amount').value) / 1000,
+            amount: parseFloat(document.getElementById('receivable-amount').value) / 1000, // Amount is the target amount
+            current_amount: 0, // Initialize current_amount to 0
             due_date: document.getElementById('receivable-due-date').value,
             description: document.getElementById('receivable-description').value.trim()
         };
@@ -4491,34 +4507,50 @@ function initializeAppLogic() {
     function handleMarkDebtAsPaid(debtId) {
         showConfirmModal({
             title: 'Tandai Lunas?', message: 'Anda akan menandai utang ini sebagai lunas.', confirmText: 'Ya, Lunas',
-            onConfirm: () => updateDebtStatus(debtId, 'paid')
+            onConfirm: async () => {
+                const debt = appState.debts.find(d => d.id === debtId);
+                if (!debt) return;
+
+                // Create an expense transaction for paying off the debt
+                const expenseTransaction = {
+                    type: 'expense',
+                    amount: debt.amount,
+                    category: 'Utang',
+                    description: `Pelunasan utang kepada ${debt.creditor_name}`,
+                    date: new Date().toISOString().split('T')[0]
+                };
+                await saveTransaction(expenseTransaction);
+
+                // Update the debt status
+                await updateDebtStatus(debtId, 'paid');
+            }
         });
     }
 
-    async function saveDebt(debt) { // Renamed from createDebt
+    async function saveDebt(debtData) {
         if (!appState.user) return;
 
-        debt.id = Date.now();
-        debt.user_id = appState.user.id;
-        debt.status = 'unpaid';
-        debt.created_at = new Date().toISOString();
+        const newDebt = {
+            ...debtData,
+            user_id: appState.user.id,
+            status: 'unpaid',
+            created_at: new Date().toISOString(),
+        };
 
         try {
-            if (useSupabase) {
-                const { data, error } = await api.createDebt(debt);
-                if (error) {
-                    showSyncStatus('error', 'Gagal sync utang ke cloud');
-                    console.error('Supabase debt create error:', error);
-                } else {
-                    await loadUserData();
-                    render();
-                    showSyncStatus('success', 'Utang dicatat & disinkronisasi');
-                }
+            const { data, error } = await api.createDebt(newDebt);
+            if (error) {
+                showSyncStatus('error', 'Gagal sync utang ke cloud');
+                console.error('Supabase debt create error:', error);
+            } else {
+                await loadUserData();
+                render();
+                showSyncStatus('success', 'Utang dicatat & disinkronisasi');
             }
         } catch (error) {
             console.error('Error creating debt:', error);
             showSyncStatus('error', 'Gagal mencatat utang');
-        }
+        } 
     }
 
     async function createReceivable(receivable) { // Renamed from saveReceivable
@@ -4545,6 +4577,175 @@ function initializeAppLogic() {
             console.error('Error creating receivable:', error);
             showSyncStatus('error', 'Gagal mencatat piutang');
         }
+    }
+
+    window.showAddInstallmentModal = showAddInstallmentModal;
+    function showAddInstallmentModal(receivableId) {
+        const receivable = appState.receivables.find(r => r.id === receivableId);
+        if (!receivable) {
+            showSyncStatus('error', 'Piutang tidak ditemukan.');
+            return;
+        }
+
+        const remainingAmount = (receivable.amount - (receivable.current_amount || 0)) * 1000;
+
+        const modalId = `installment-modal-${receivableId}`;
+        const modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center p-4 z-50 animate-fadeIn';
+        modal.innerHTML = `
+            <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-3xl rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-white/40 dark:border-slate-700 animate-slideUp">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Tambah Cicilan Piutang</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Untuk: <span class="font-semibold">${receivable.debtor_name}</span></p>
+                    </div>
+                    <button onclick="document.getElementById('${modalId}').remove()" class="text-gray-500 hover:text-gray-700 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-300">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form onsubmit="handleAddInstallment(event, ${receivable.id})" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Jumlah Cicilan (Rp)</label>
+                        <input
+                            type="number"
+                            step="1000"
+                            id="installment-amount-${receivable.id}"
+                            placeholder="Masukkan jumlah pembayaran"
+                            max="${remainingAmount}"
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                            required
+                        />
+                        <p class="text-xs text-gray-500 mt-2">Sisa piutang: Rp ${remainingAmount.toLocaleString('id-ID')}</p>
+                    </div>
+                    <div class="flex space-x-3 pt-4">
+                        <button type="submit" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3 rounded-xl font-semibold shadow-lg">
+                            <i class="fas fa-check mr-2"></i>Simpan Cicilan
+                        </button>
+                        <button type="button" onclick="document.getElementById('${modalId}').remove()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-semibold dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-gray-200">
+                            <i class="fas fa-times mr-2"></i>Batal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById(`installment-amount-${receivable.id}`).focus();
+    }
+
+    window.handleAddInstallment = handleAddInstallment;
+    async function handleAddInstallment(event, receivableId) {
+        event.preventDefault();
+        const receivable = appState.receivables.find(r => r.id === receivableId);
+        if (!receivable) {
+            showSyncStatus('error', 'Piutang tidak ditemukan.');
+            return;
+        }
+
+        const installmentAmountInput = document.getElementById(`installment-amount-${receivableId}`);
+        const installmentAmount = parseFloat(installmentAmountInput.value) / 1000;
+
+        if (isNaN(installmentAmount) || installmentAmount <= 0) {
+            showSyncStatus('error', 'Jumlah cicilan tidak valid.');
+            return;
+        }
+
+        const newCurrentAmount = (receivable.current_amount || 0) + installmentAmount;
+        const isPaid = newCurrentAmount >= receivable.amount;
+
+        const updates = {
+            current_amount: newCurrentAmount,
+            status: isPaid ? 'paid' : 'unpaid',
+            updated_at: new Date().toISOString()
+        };
+
+        // 1. Create a corresponding income transaction for the installment
+        const incomeTransaction = {
+            type: 'income',
+            amount: installmentAmount,
+            category: 'Piutang', // A dedicated category for receivable payments
+            description: `Cicilan dari ${receivable.debtor_name}`,
+            date: new Date().toISOString().split('T')[0],
+            user_id: appState.user.id,
+            created_at: new Date().toISOString()
+        };
+
+        // Use the generic saveTransaction function which handles UI updates
+        await saveTransaction(incomeTransaction);
+
+        // 2. Update the receivable record itself
+        await updateReceivable(
+            receivableId, 
+            updates, 
+            `Cicilan Rp ${(installmentAmount * 1000).toLocaleString('id-ID')} berhasil dicatat!`
+        );
+
+        document.getElementById(`installment-modal-${receivableId}`)?.remove();
+    }
+
+    window.showEditReceivableModal = showEditReceivableModal;
+    function showEditReceivableModal(receivableId) {
+        const receivable = appState.receivables.find(r => r.id === receivableId);
+        if (!receivable) {
+            showSyncStatus('error', 'Piutang tidak ditemukan.');
+            return;
+        }
+
+        const modalId = `edit-receivable-modal-${receivableId}`;
+        const modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center p-4 z-50 animate-fadeIn';
+        modal.innerHTML = `
+            <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-3xl rounded-3xl p-8 w-full max-w-lg shadow-2xl border border-white/40 dark:border-slate-700 animate-slideUp">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 dark:text-white">Edit Piutang</h3>
+                    <button onclick="document.getElementById('${modalId}').remove()" class="text-gray-500 hover:text-gray-700 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-300">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form onsubmit="handleUpdateReceivable(event, ${receivable.id})" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Nama Peminjam</label>
+                            <input type="text" id="edit-receivable-debtor" value="${receivable.debtor_name}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Jumlah Piutang (Rp)</label>
+                            <input type="number" step="1000" id="edit-receivable-amount" value="${receivable.amount * 1000}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Tanggal Jatuh Tempo</label>
+                        <input type="date" id="edit-receivable-due-date" value="${receivable.due_date}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Deskripsi</label>
+                        <textarea id="edit-receivable-description" rows="2" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-500/20 focus:border-green-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white">${receivable.description || ''}</textarea>
+                    </div>
+                    <div class="flex space-x-3 pt-4">
+                        <button type="submit" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-3 rounded-xl font-semibold shadow-lg"><i class="fas fa-save mr-2"></i>Simpan Perubahan</button>
+                        <button type="button" onclick="document.getElementById('${modalId}').remove()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-semibold dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-gray-200"><i class="fas fa-times mr-2"></i>Batal</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    window.handleUpdateReceivable = handleUpdateReceivable;
+    async function handleUpdateReceivable(event, receivableId) {
+        event.preventDefault();
+
+        const updates = {
+            debtor_name: document.getElementById('edit-receivable-debtor').value.trim(),
+            amount: parseFloat(document.getElementById('edit-receivable-amount').value) / 1000,
+            due_date: document.getElementById('edit-receivable-due-date').value,
+            description: document.getElementById('edit-receivable-description').value.trim(),
+            updated_at: new Date().toISOString()
+        };
+
+        await updateReceivable(receivableId, updates, 'Piutang berhasil diperbarui!');
+        document.getElementById(`edit-receivable-modal-${receivableId}`)?.remove();
     }
 
     window.showEditTransactionModal = showEditTransactionModal;
@@ -4651,15 +4852,54 @@ function initializeAppLogic() {
     }
 
     window.handleMarkAsPaid = handleMarkAsPaid;
-    async function handleMarkAsPaid(receivableId) {
+    function handleMarkAsPaid(receivableId) {
+        const receivable = appState.receivables.find(r => r.id === receivableId);
+        if (!receivable) return;
+
+        const remainingAmount = receivable.amount - (receivable.current_amount || 0);
+
         showConfirmModal({
             title: 'Tandai Lunas?',
-            message: 'Apakah Anda yakin ingin menandai piutang ini sebagai lunas?',
+            message: `Ini akan melunasi sisa piutang sebesar Rp ${(remainingAmount * 1000).toLocaleString('id-ID')}. Lanjutkan?`,
             confirmText: 'Ya, Lunas',
             onConfirm: async () => {
-                await updateReceivableStatus(receivableId, 'paid');
+                // Create income transaction for the remaining amount
+                if (remainingAmount > 0) {
+                    const incomeTransaction = {
+                        type: 'income',
+                        amount: remainingAmount,
+                        category: 'Piutang',
+                        description: `Pelunasan dari ${receivable.debtor_name}`,
+                        date: new Date().toISOString().split('T')[0],
+                        user_id: appState.user.id,
+                        created_at: new Date().toISOString()
+                    };
+                    await saveTransaction(incomeTransaction);
+                }
+
+                const updates = { 
+                    current_amount: receivable.amount, 
+                    status: 'paid',
+                    updated_at: new Date().toISOString()
+                };
+                await updateReceivable(receivableId, updates, 'Piutang berhasil dilunasi!');
             }
         });
+    }
+
+    async function updateReceivable(receivableId, updates, successMessage) {
+        if (!appState.user) return;
+
+        const { error } = await api.updateReceivable(receivableId, updates);
+        if (error) {
+            showSyncStatus('error', 'Gagal sync update piutang');
+            console.error('Supabase receivable update error:', error);
+        } else {
+            // Data will be reloaded by the saveTransaction call, so we just need to show status and render
+            await loadUserData(); // Reload to be safe
+            render();
+            showSyncStatus('success', successMessage || 'Piutang diperbarui & disinkronisasi');
+        }
     }
 
     window.handleDeleteReceivable = handleDeleteReceivable;
@@ -6386,24 +6626,37 @@ function initializeAppLogic() {
 
     // Initialize app
     async function startApp() {
-        render(); // Tampilkan loading screen pertama kali
-
-        // Update progress text during loading
-        const progressText = document.getElementById('loading-progress-text');
-        if (progressText) {
-            setTimeout(() => {
-                progressText.textContent = 'Menghubungkan ke server...';
-            }, 500);
-            setTimeout(() => {
-                progressText.textContent = 'Hampir selesai...';
-            }, 1000);
+        // 1. Cek apakah ada sesi user yang tersimpan di localStorage
+        const storedUser = localStorage.getItem('frixsave_user');
+        if (storedUser) {
+            try {
+                appState.user = JSON.parse(storedUser);
+                console.log('🔄 Melanjutkan sesi untuk user:', appState.user.email);
+                
+                // Langsung tampilkan loading screen, muat data, lalu render dashboard
+                appState.isLoading = true;
+                render();
+                await loadUserData();
+                appState.isLoading = false;
+                render();
+                return; // Hentikan eksekusi agar tidak menampilkan login page
+            } catch (e) {
+                console.error('Gagal mem-parse data user, sesi dibersihkan.', e);
+                localStorage.removeItem('frixsave_user');
+            }
         }
 
-        // Tambahkan sedikit jeda agar animasi terlihat lebih mulus
-        setTimeout(() => {
+        // 2. Jika tidak ada sesi, jalankan alur normal (tampilkan loading lalu login page)
+        appState.isLoading = true;
+        render(); // Tampilkan loading screen
+
+        // Tambahkan jeda untuk efek visual
+        setTimeout(async () => {
             appState.isLoading = false;
-            render(); // Render aplikasi utama
-        }, 1500); // Jeda 1.5 detik
+            // Jika Supabase tidak terkonfigurasi, render akan menampilkan halaman setup
+            // Jika sudah, render akan menampilkan halaman login
+            render();
+        }, 1500);
     }
 
     startApp();
