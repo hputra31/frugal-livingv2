@@ -40,8 +40,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
+    <style>
+        details > summary {
+            list-style: none;
+        }
+        details[open] .accordion-icon {
+            transform: rotate(180deg);
+        }
+    </style>
     <!-- Favicon -->
-    <link rel="icon" href="icon.png" type="image/png">
+    <link rel="icon" href="img/icon.png" type="image/png">
 </head>
 <body class="gradient-bg-landing text-gray-800">
 
@@ -53,7 +61,7 @@
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center">
                 <!-- Logo -->
-                <img src="logo.png" alt="Frixsave Logo" class="h-10 w-auto object-contain drop-shadow-lg logo-transparent-bg flex-shrink-0">
+                <img src="img/logo.png" alt="Frixsave Logo" class="h-10 w-auto object-contain drop-shadow-lg logo-transparent-bg flex-shrink-0">
             </div>
             <a href="app.html" class="animated-gradient-btn bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
                 Masuk Aplikasi
