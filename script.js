@@ -322,14 +322,14 @@ function initializeAppLogic() {
             { type: 'expense', name: '🤝 Arisan' },
             { type: 'expense', name: '📦 Lainnya' },
             // Income Categories
-            { type: 'income', name: 'Piutang' },
+            { type: 'income', name: '📥 Piutang' },
             { type: 'income', name: '💰 Gaji' },
             { type: 'income', name: '📈 Investasi' },
             { type: 'income', name: '💸 Bonus' },
             { type: 'income', name: '🤝 Arisan' },
             { type: 'income', name: '🪙 Lainnya' },
             // Expense Categories for Debt/Receivable
-            { type: 'expense', name: 'Utang' },
+            { type: 'expense', name: '💸 Utang' },
         ],
         transactionManagement: {
             currentPage: 1,
