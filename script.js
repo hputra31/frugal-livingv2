@@ -1131,7 +1131,7 @@ function initializeAppLogic() {
                 <div class="text-center fade-in">
                     <!-- Ganti ikon dengan tag <img> untuk logo Anda -->
                     <div class="inline-flex items-center justify-center w-24 h-24 mb-8 loader-icon drop-shadow-xl">
-                        <img src="icon.png" alt="Frixsave Logo" class="h-full w-full object-contain logo-transparent-bg">
+                        <img src="img/icon.png" alt="Frixsave Logo" class="h-full w-full object-contain logo-transparent-bg">
                     </div>
                     <h1 class="text-5xl font-bold text-white mb-4 tracking-tight glowing-text">Frixsave</h1>
                     <p class="text-white/80 text-xl">Memuat data keuangan Anda...</p>
@@ -1182,7 +1182,7 @@ function initializeAppLogic() {
                     <div class="text-center mb-8">
                         <!-- Logo diperbesar dan diberi bayangan -->
                         <div class="inline-flex items-center justify-center w-25 h-24 mb-6 drop-shadow-xl ">
-                            <img src="logo.png" alt="Frixsave Logo" class="h-full w-full object-contain logo-transparent-bg">
+                            <img src="img/login.png" alt="Frixsave Logo" class="h-full w-full object-contain logo-transparent-bg">
                         </div>
                         <p class="text-white/80 text-lg">Smart Financial Management</p>
                         <div class="w-16 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full mx-auto mt-4"></div>
@@ -1278,7 +1278,7 @@ function initializeAppLogic() {
                                 >
                                     <i class="fas fa-bars text-lg"></i>
                                 </button>
-                                <img src="logo.png" alt="Frixsave Logo" class="h-10 w-auto object-contain drop-shadow-lg logo-transparent-bg flex-shrink-0 ml-2 lg:ml-0">
+                                <img src="img/logo.png" alt="Frixsave Logo" class="h-10 w-auto object-contain drop-shadow-lg logo-transparent-bg flex-shrink-0 ml-2 lg:ml-0">
                             </div>
                             
                             <div class="flex items-center space-x-4">
@@ -1453,6 +1453,42 @@ function initializeAppLogic() {
         const totalExpense = appState.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
         const balance = totalIncome - totalExpense;
 
+        // Logic for Financial Status
+        let financialStatus;
+        const savingsRate = totalIncome > 0 ? (balance / totalIncome) * 100 : -1;
+
+        if (savingsRate >= 20) {
+            financialStatus = {
+                title: 'Bertumbuh',
+                description: 'Kerja bagus! Pengeluaran Anda jauh di bawah pemasukan. Terus pertahankan!',
+                image: 'img/bertumbuh.png',
+                bgColor: 'bg-green-50 dark:bg-green-500/10',
+                borderColor: 'border-green-200 dark:border-green-500/20',
+                textColor: 'text-green-700 dark:text-green-300',
+                icon: 'fa-rocket'
+            };
+        } else if (savingsRate >= 0) {
+            financialStatus = {
+                title: 'Seimbang',
+                description: 'Pemasukan dan pengeluaran Anda cukup seimbang. Cari peluang untuk menabung lebih banyak.',
+                image: 'img/seimbang.png',
+                bgColor: 'bg-blue-50 dark:bg-blue-500/10',
+                borderColor: 'border-blue-200 dark:border-blue-500/20',
+                textColor: 'text-blue-700 dark:text-blue-300',
+                icon: 'fa-balance-scale'
+            };
+        } else {
+            financialStatus = {
+                title: 'Waspada',
+                description: 'Pengeluaran melebihi pemasukan. Saatnya meninjau kembali anggaran Anda.',
+                image: 'img/waspada.png',
+                bgColor: 'bg-red-50 dark:bg-red-500/10',
+                borderColor: 'border-red-200 dark:border-red-500/20',
+                textColor: 'text-red-700 dark:text-red-300',
+                icon: 'fa-exclamation-triangle'
+            };
+        }
+
         // Data processing for the trend chart
         const trendData = {};
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
@@ -1490,6 +1526,23 @@ function initializeAppLogic() {
                     </div>
                     ${syncStatusIndicator}
                 </div>
+
+                <!-- Financial Status Card -->
+                <div class="financial-status-card ${financialStatus.bgColor} ${financialStatus.borderColor} border-2 rounded-3xl p-6 shadow-lg flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                    <img src="${financialStatus.image}" alt="Status ${financialStatus.title}" class="w-24 h-24 md:w-32 md:h-32 object-contain drop-shadow-lg"/>
+                    <div class="text-center md:text-left">
+                        <div class="flex items-center justify-center md:justify-start gap-2 mb-1">
+                            <i class="fas ${financialStatus.icon} ${financialStatus.textColor}"></i>
+                            <h2 class="text-xl font-bold ${financialStatus.textColor}">
+                                Status Keuangan: ${financialStatus.title}
+                            </h2>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 max-w-md">
+                            ${financialStatus.description}
+                        </p>
+                    </div>
+                </div>
+
                 
                 <!-- Modern Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
