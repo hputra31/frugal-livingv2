@@ -888,6 +888,9 @@ function initializeAppLogic() {
             
             console.log('✅ Data loaded from Supabase.');
             
+            // Ensure profile settings are also loaded from the user data
+            loadProfileSettings();
+
             await setupRealtimeSubscriptions(userId);
 
         } catch (error) {
@@ -5429,28 +5432,39 @@ function initializeAppLogic() {
     }
 
     window.saveProfileSettings = saveProfileSettings;
-    function saveProfileSettings() {
+    async function saveProfileSettings() {
         const name = document.getElementById('full-name').value;
         const currency = document.getElementById('currency').value;
         const theme = document.getElementById('theme').value;
 
         if (appState.user) {
             const userId = appState.user.id;
-            const updates = { name, currency, theme };
+            const updates = { name, currency, theme, updated_at: new Date().toISOString() };
 
-            // Save to Supabase
-            api.updateUser(userId, updates).then(({ data, error }) => {
-                if (error) {
+            try {
+                // Save to Supabase and wait for the result
+                const { data, error } = await api.updateUser(userId, updates);
+
+                if (error || !data || data.length === 0) {
+                    console.error('❌ Supabase profile update error:', error);
                     showSyncStatus('error', 'Gagal menyimpan pengaturan profil.');
-                } else {
-                    showSyncStatus('success', 'Pengaturan profil berhasil disimpan!');
+                    return;
                 }
-            });
-            
-            // Apply theme immediately
-            applyTheme(theme);
 
-            showSyncStatus('success', 'Pengaturan profil berhasil disimpan!');
+                // Update local state with the new data from the database
+                appState.user = data[0];
+                // Also update the derived profile state to ensure consistency
+                appState.profile.name = appState.user.name;
+                appState.profile.currency = appState.user.currency;
+                appState.profile.theme = appState.user.theme;
+                localStorage.setItem('frixsave_user', JSON.stringify(appState.user));
+
+                showSyncStatus('success', 'Pengaturan profil berhasil disimpan & disinkronisasi!');
+                render(); // Re-render the page to show the updated name
+            } catch (e) {
+                console.error('❌ Exception during profile update:', e);
+                showSyncStatus('error', 'Terjadi kesalahan saat menyimpan.');
+            }
         }
     }
 
