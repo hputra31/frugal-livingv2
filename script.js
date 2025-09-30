@@ -287,10 +287,12 @@ function initializeLandingPageLogic() {
  * Initializes the main application logic for app.html.
  */
 function initializeAppLogic() {
-    // Default date range to the current month
+    // Default date range to the last month until today
     const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    const endDate = today.toISOString().split('T')[0];
+    const startDate = new Date(today);
+    startDate.setMonth(startDate.getMonth() - 1);
+    const startDateString = startDate.toISOString().split('T')[0];
     
     // Simple state management
     let appState = {
@@ -335,8 +337,8 @@ function initializeAppLogic() {
             currentPage: 1,
             transactionsPerPage: 10, // Show 10 transactions per page
             totalTransactions: 0,
-            startDate: firstDayOfMonth, // Filter tanggal mulai
-            endDate: lastDayOfMonth,    // Filter tanggal akhir
+            startDate: startDateString, // Filter tanggal mulai
+            endDate: endDate,    // Filter tanggal akhir
             summary: {
                 income: 0,
                 expense: 0,
@@ -6341,23 +6343,29 @@ function initializeAppLogic() {
     // Clear all filters
     window.clearTransactionFilters = clearTransactionFilters;
     function clearTransactionFilters() {
+        // 1. Reset search query
         const searchInput = document.getElementById('transaction-search');
         if (searchInput) {
             searchInput.value = '';
         }
-
         searchQuery = '';
-        // Reset date inputs and state
+
+        // 2. Reset transaction type filter to 'all'
+        setTransactionFilter('all');
+
+        // 3. Reset date inputs and state to the current month
         const startDateInput = document.getElementById('start-date-filter');
         const endDateInput = document.getElementById('end-date-filter');
+        const today = new Date(); // Re-declare for this scope
+        const endDate = today.toISOString().split('T')[0];
+        const startDate = new Date(today);
+        startDate.setMonth(startDate.getMonth() - 1);
+        const startDateString = startDate.toISOString().split('T')[0];
         
-        // Default to current month
-        const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
-        
-        appState.transactionManagement.startDate = firstDayOfMonth;
-        appState.transactionManagement.endDate = lastDayOfMonth;
+        appState.transactionManagement.startDate = startDateString;
+        appState.transactionManagement.endDate = endDate;
+        if(startDateInput) startDateInput.value = startDateString;
+        if(endDateInput) endDateInput.value = endDate;
 
         // This will trigger a reload and re-render
         handleDateFilterChange();
