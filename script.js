@@ -298,9 +298,10 @@ function initializeAppLogic() {
     let appState = {
         user: null,
         isLoading: true,
-        profile: { name: 'Pengguna Frixsave', currency: 'IDR', theme: 'light' },
+        profile: { name: 'Pengguna Frixsave', currency: 'IDR', theme: 'light', accentColor: 'indigo' },
         currentPage: 'overview',
         sidebarOpen: false,
+        userDropdownOpen: false,
         overview: {
             categoryChartFilter: 'thisMonth' // 'today', 'thisWeek', 'thisMonth', 'thisYear'
         },
@@ -827,19 +828,38 @@ function initializeAppLogic() {
     };
 
     // Theme Management
-    function applyTheme(theme) {
+    function applyAppearance(theme, accentColor) {
+        const root = document.documentElement;
+
+        // 1. Handle Light/Dark Theme
         if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
+            root.classList.add('dark');
         } else {
-            document.documentElement.classList.remove('dark');
+            root.classList.remove('dark');
         }
+
+        // 2. Handle Accent Color
+        // Remove old accent color classes
+        const accents = ['indigo', 'green', 'rose', 'orange'];
+        accents.forEach(color => root.classList.remove(`theme-${color}`));
+
+        // Add new accent color class
+        root.classList.add(`theme-${accentColor || 'indigo'}`);
     }
 
     function loadProfileSettings(userId) {
         appState.profile.name = appState.user.name || 'Pengguna Frixsave';
         appState.profile.currency = appState.user.currency || 'IDR';
         appState.profile.theme = appState.user.theme || 'light';
-        applyTheme(appState.profile.theme);
+        appState.profile.accentColor = appState.user.accent_color || 'indigo';
+        applyAppearance(appState.profile.theme, appState.profile.accentColor);
+    }
+
+    // Override supabase.updateUser to include accent_color
+    const originalUpdateUser = api.updateUser;
+    api.updateUser = async (userId, updates) => {
+        updates.accent_color = updates.accentColor; // Map JS-style name to DB-style name
+        return originalUpdateUser(userId, updates);
     }
 
     // Data management
@@ -1176,9 +1196,9 @@ function initializeAppLogic() {
             <div class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 flex items-center justify-center p-4 relative overflow-hidden dark:from-slate-900 dark:via-black dark:to-slate-800">
                 <!-- Animated Background Elements -->
                 <div class="absolute inset-0 overflow-hidden">
-                    <div class="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-                    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-pink-400 to-red-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
-                    <div class="absolute top-40 left-40 w-60 h-60 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
+                    <div class="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+                    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
+                    <div class="absolute top-40 left-40 w-60 h-60 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
                 </div>
 
                 <!-- Login Card -->
@@ -1190,7 +1210,7 @@ function initializeAppLogic() {
                             <img src="img/login.png" alt="Frixsave Logo" class="h-full w-full object-contain logo-transparent-bg">
                         </div>
                         <p class="text-white/80 text-lg">Smart Financial Management</p>
-                        <div class="w-16 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full mx-auto mt-4"></div>
+                        <div class="w-16 h-1 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full mx-auto mt-4"></div>
                     </div>
 
                     <!-- Login Form -->
@@ -1219,7 +1239,7 @@ function initializeAppLogic() {
                             <button
                                 onclick="handleLogin()"
                                 id="login-button"
-                                class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg"
+                                class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl shadow-lg"
                             >
                                 <i class="fas fa-arrow-right mr-3"></i>Akses Dashboard
                             </button>
@@ -1240,7 +1260,7 @@ function initializeAppLogic() {
                             class="w-full bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-2xl transition-all duration-300 border border-white/20 hover:border-white/40 backdrop-blur-sm group"
                         >
                             <div class="flex items-center justify-center">
-                                <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mr-3">
+                                <div class="w-8 h-8 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center mr-3">
                                     <i class="fas fa-user text-white text-sm"></i>
                                 </div>
                                 <span class="font-medium">demo@frixsave.com</span>
@@ -1287,24 +1307,32 @@ function initializeAppLogic() {
                             </div>
                             
                             <div class="flex items-center space-x-4">
-                                <button
-                                    onclick="showQuickAddModal()"
-                                    class="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 relative overflow-hidden group"
-                                >
-                                    <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                                    <div class="relative flex items-center">
-                                        <div class="w-4 h-4 bg-white/20 rounded-full flex items-center justify-center sm:mr-2 group-hover:rotate-12 transition-transform duration-300">
-                                            <i class="fas fa-paper-plane text-xs"></i>
+                                <!-- Info Pengguna Dropdown (Tambahkan onclick untuk menghentikan propagasi event) -->
+                                <div class="relative" id="user-dropdown-container" onclick="event.stopPropagation()">
+                                    <button onclick="toggleUserDropdown(event)" class="flex items-center space-x-3 bg-white/60 backdrop-blur-sm p-2 sm:px-4 sm:py-2 rounded-2xl border border-white/40 dark:bg-slate-700/50 dark:border-slate-600 hover:bg-white/80 dark:hover:bg-slate-700 transition-colors duration-300">
+                                        <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-user text-white text-sm"></i>
                                         </div>
-                                        <span class="hidden sm:inline text-sm">Tambah</span>
+                                        <span class="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200">${appState.user.email}</span>
+                                        <i class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400 ml-1 transition-transform duration-300 ${appState.userDropdownOpen ? 'rotate-180' : ''}"></i>
+                                    </button>
+
+                                    <!-- Dropdown Menu -->
+                                    ${appState.userDropdownOpen ? `
+                                    <div id="user-dropdown-menu" class="absolute right-0 mt-3 w-56 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/30 dark:bg-slate-800/90 dark:border-slate-700/80 animate-fadeIn">
+                                        <div class="p-2">
+                                            <button onclick="navigateTo('settings')" class="w-full text-left flex items-center px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-slate-700 rounded-xl transition-colors duration-200">
+                                                <i class="fas fa-user-cog w-5 mr-3 text-gray-500 dark:text-gray-400"></i>
+                                                Profil
+                                            </button>
+                                            <div class="my-1 h-px bg-gray-200 dark:bg-slate-700"></div>
+                                            <button onclick="handleLogout()" class="w-full text-left flex items-center px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/20 rounded-xl transition-colors duration-200">
+                                                <i class="fas fa-sign-out-alt w-5 mr-3"></i>
+                                                Keluar
+                                            </button>
+                                        </div>
                                     </div>
-                                </button>
-                                <!-- Info Pengguna -->
-                                <div class="flex items-center space-x-3 bg-white/60 backdrop-blur-sm p-2 sm:px-4 sm:py-2 rounded-2xl border border-white/40 dark:bg-slate-700/50 dark:border-slate-600">
-                                    <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-user text-white text-sm"></i>
-                                    </div>
-                                    <span class="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200">${appState.user.email}</span>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
@@ -1348,11 +1376,29 @@ function initializeAppLogic() {
 
                 <!-- Main Content -->
                 <div class="lg:ml-72 pt-20">
-                    <main class="p-4 sm:p-6 lg:p-8 pb-20">
+                    <main class="p-4 sm:p-6 lg:p-8 pb-32 lg:pb-20">
                         <div id="page-content" class="page-fade-in">
                             ${renderCurrentPage()}
                         </div>
                     </main>
+                </div>
+
+                <!-- Mobile Bottom Navigation -->
+                <div class="lg:hidden fixed bottom-0 left-0 z-40 w-full h-20 bg-white/90 backdrop-blur-xl border-t border-gray-200/80 dark:bg-slate-800/90 dark:border-slate-700/80">
+                    <div class="grid h-full grid-cols-5 mx-auto">
+                        ${renderBottomNavItem('overview', 'Ringkasan', 'fas fa-home')}
+                        ${renderBottomNavItem('goals', 'Target', 'fas fa-bullseye')}
+                        
+                        <!-- Tombol Tambah di Tengah -->
+                        <div class="flex items-center justify-center">
+                            <button onclick="showQuickAddModal()" class="inline-flex items-center justify-center w-16 h-16 font-medium bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-full shadow-lg transform -translate-y-4 hover:scale-110 transition-transform duration-300">
+                                <i class="fas fa-plus text-2xl"></i>
+                            </button>
+                        </div>
+
+                        ${renderBottomNavItem('budgets', 'Anggaran', 'fas fa-chart-pie')}
+                        ${renderBottomNavItem('settings', 'Profil', 'fas fa-user')}
+                    </div>
                 </div>
 
                 <!-- Modern Footer -->
@@ -1375,6 +1421,23 @@ function initializeAppLogic() {
                 <!-- Quick Add Modal -->
                 ${appState.showQuickAdd ? renderQuickAddModal() : ''}
             </div>
+        `;
+    }
+
+    function renderBottomNavItem(pageId, label, icon) {
+        const isActive = appState.currentPage === pageId;
+        const activeClass = 'text-indigo-600 dark:text-indigo-400';
+        const inactiveClass = 'text-gray-500 dark:text-gray-400';
+
+        return `
+            <button type="button" onclick="navigateTo('${pageId}')" class="inline-flex flex-col items-center justify-center px-2 hover:bg-gray-50 dark:hover:bg-slate-700/50 group transition-colors duration-300">
+                <div class="w-8 h-8 flex items-center justify-center">
+                    <i class="${icon} text-xl ${isActive ? activeClass : inactiveClass} group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300"></i>
+                </div>
+                <span class="text-xs ${isActive ? activeClass + ' font-semibold' : inactiveClass} group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
+                    ${label}
+                </span>
+            </button>
         `;
     }
 
@@ -1584,7 +1647,7 @@ function initializeAppLogic() {
                                     Rp ${(balance * 1000).toLocaleString('id-ID')}
                                 </p>
                                 <p class="text-xs ${balance >= 0 ? 'text-green-500' : 'text-red-500'} mt-1">
-                                    ${balance >= 0 ? '✓ Kondisi sehat' : '⚠ Perlu perhatian'}
+                                    ${balance >= 0 ? '✓ Kondisi sehat' : '⚠️ Perlu perhatian'}
                                 </p>
                             </div>
                             <div class="bg-gradient-to-br from-${balance >= 0 ? 'blue' : 'orange'}-400 to-${balance >= 0 ? 'indigo' : 'red'}-500 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
@@ -1600,7 +1663,7 @@ function initializeAppLogic() {
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
                         <div class="flex items-center justify-between mb-6">
                             <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center dark:text-white">
-                                <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
+                                <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
                                     <i class="fas fa-chart-line text-white text-sm"></i>
                                 </div>
                                 Tren Keuangan
@@ -1619,7 +1682,7 @@ function initializeAppLogic() {
                                 </div>
                                 <h4 class="text-base sm:text-lg font-semibold text-gray-700 mb-2 dark:text-gray-200">Belum Ada Data</h4>
                                 <p class="text-gray-500 text-sm sm:text-base mb-4 sm:mb-6">Tambahkan transaksi untuk melihat tren keuangan</p>
-                                <button onclick="showQuickAddModal()" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base">
+                                <button onclick="showQuickAddModal()" class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base">
                                     <i class="fas fa-plus mr-2"></i>Tambah Transaksi
                                 </button>
                             </div>
@@ -1820,7 +1883,7 @@ function initializeAppLogic() {
                     </div>
                     <div class="flex flex-col sm:flex-row items-center gap-3">
                         ${syncStatusIndicator}
-                        <button onclick="showQuickAddModal()" class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 sm:px-6 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center">
+                        <button onclick="showQuickAddModal()" class="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 sm:px-6 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center">
                             <i class="fas fa-paper-plane mr-2"></i>
                             <span class="text-sm sm:text-base">Tambah Transaksi</span>
                         </button>
@@ -1853,7 +1916,7 @@ function initializeAppLogic() {
                     </div>
                     <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
                         <div class="flex items-center">
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center mr-4 shadow-md">
+                            <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mr-4 shadow-md">
                                 <i class="fas fa-wallet text-white text-lg"></i>
                             </div>
                             <div>
@@ -2008,7 +2071,7 @@ function initializeAppLogic() {
                     </div>
                     <div class="flex flex-col sm:flex-row items-center gap-3">
                         ${syncStatusIndicator}
-                        <button onclick="showAddBudgetForm()" class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 sm:px-6 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center">
+                        <button onclick="showAddBudgetForm()" class="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 sm:px-6 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center">
                             <i class="fas fa-paper-plane mr-2"></i>
                             <span class="text-sm sm:text-base">Tambah Anggaran</span>
                         </button>
@@ -2059,7 +2122,7 @@ function initializeAppLogic() {
                             <div class="flex space-x-2">
                                 <button
                                     type="submit"
-                                    class="flex-1 sm:flex-none bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 sm:px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
+                                    class="flex-1 sm:flex-none bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 sm:px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
                                 >
                                     <i class="fas fa-check mr-2"></i>Tambah
                                 </button>
@@ -2106,7 +2169,7 @@ function initializeAppLogic() {
                                     </div>
                                 </div>
                                 <div class="mt-4 pt-4 border-t border-gray-200/80 dark:border-slate-700/80 space-y-2">
-                                    <button onclick="showRecordPaymentForBudget(${budget.id})" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold px-3 py-2 rounded-xl transition-all duration-300 text-sm shadow-md hover:shadow-lg transform hover:scale-105">
+                                    <button onclick="showRecordPaymentForBudget(${budget.id})" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold px-3 py-2 rounded-xl transition-all duration-300 text-sm shadow-md hover:shadow-lg transform hover:scale-105">
                                         <i class="fas fa-money-bill-wave mr-2"></i> Catat Pembayaran
                                     </button>
                                     <div class="flex items-center gap-2">
@@ -2132,7 +2195,7 @@ function initializeAppLogic() {
                         <p class="text-gray-500 mb-6 text-sm sm:text-base dark:text-gray-400">Buat anggaran untuk mengontrol pengeluaran Anda</p>
                         <button
                             onclick="showAddBudgetForm()"
-                            class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 sm:px-8 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
+                            class="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-6 sm:px-8 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
                         >
                             <i class="fas fa-plus mr-2"></i>Buat Anggaran Pertama
                         </button>
@@ -2400,7 +2463,7 @@ function initializeAppLogic() {
                     </div>
                     <div class="flex flex-col sm:flex-row items-center gap-3">
                         ${syncStatusIndicator}
-                        <button onclick="showAddGoalForm()" class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 sm:px-6 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center">
+                        <button onclick="showAddGoalForm()" class="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 sm:px-6 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center">
                             <i class="fas fa-paper-plane mr-2"></i>
                             <span class="text-sm sm:text-base">Tambah Target</span>
                         </button>
@@ -2410,6 +2473,7 @@ function initializeAppLogic() {
                 <div id="goal-form" class="hidden bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
                     <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
                         <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
+                            <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
                             <i class="fas fa-bullseye text-white text-sm"></i>
                         </div>
                         Buat Target Baru
@@ -2448,7 +2512,7 @@ function initializeAppLogic() {
                         <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                             <button
                                 type="submit"
-                                class="flex-1 sm:flex-none bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 sm:px-8 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
+                                class="flex-1 sm:flex-none bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 sm:px-8 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
                             > 
                                 <i class="fas fa-check mr-2"></i>Buat Target
                             </button>
@@ -2487,7 +2551,7 @@ function initializeAppLogic() {
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-3">
                                         <div 
-                                            class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-300" 
+                                            class="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-300" 
                                             style="width: ${Math.min(progress, 100)}%"
                                         ></div>
                                     </div>
@@ -2496,7 +2560,7 @@ function initializeAppLogic() {
                                 <div class="mt-4 pt-4 border-t border-gray-200/80">
                                     <div class="flex items-center gap-2">
                                         <input type="number" step="1000" id="add-funds-input-${goal.id}" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Tambah dana (Rp)">
-                                        <button onclick="handleAddFundsToGoal(${goal.id})" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-2 rounded-xl transition-all duration-300 flex-shrink-0">
+                                        <button onclick="handleAddFundsToGoal(${goal.id})" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-3 py-2 rounded-xl transition-all duration-300 flex-shrink-0">
                                             <i class="fas fa-plus"></i>
                                         </button>
                                         <button onclick="showEditGoalForm(${goal.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-3 py-2 rounded-xl transition-all duration-300 flex-shrink-0">
@@ -2521,7 +2585,7 @@ function initializeAppLogic() {
                         <p class="text-gray-500 mb-6 text-sm sm:text-base">Mulai wujudkan impian finansial Anda dengan membuat target pertama</p>
                         <button
                             onclick="showAddGoalForm()"
-                            class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 sm:px-8 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
+                            class="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-6 sm:px-8 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
                         >
                             <i class="fas fa-plus mr-2"></i>Buat Target Pertama
                         </button>
@@ -2605,7 +2669,7 @@ function initializeAppLogic() {
                             <span class="text-sm sm:text-base">Ekspor PDF</span>
                         </button>
                         <button onclick="shareReport()" class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center">
-                            <i class="fas fa-share-alt mr-2"></i>
+                            <i class="fas fa-share-alt mr-2"></i> 
                             <span class="text-sm sm:text-base">Bagikan</span>
                         </button>
                     </div>
@@ -2614,7 +2678,7 @@ function initializeAppLogic() {
                 <!-- Enhanced Statistics Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group">
-                        <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center justify-between mb-4"> 
                             <div class="bg-gradient-to-br from-blue-400 to-indigo-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
                                 <i class="fas fa-arrow-up text-white text-lg sm:text-xl"></i>
                             </div>
@@ -2695,7 +2759,7 @@ function initializeAppLogic() {
                     <!-- Monthly Trend Chart -->
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
                         <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center"> 
                                 <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
                                     <i class="fas fa-chart-line text-white text-sm"></i>
                                 </div>
@@ -2715,7 +2779,7 @@ function initializeAppLogic() {
                                 </div>
                                 <h4 class="text-base sm:text-lg font-semibold text-gray-700 mb-2">Belum Ada Data</h4>
                                 <p class="text-gray-500 text-sm sm:text-base mb-4 sm:mb-6">Tambahkan transaksi untuk melihat tren keuangan</p>
-                                <button onclick="showQuickAddModal()" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base">
+                                <button onclick="showQuickAddModal()" class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base">
                                     <i class="fas fa-plus mr-2"></i>Tambah Transaksi
                                 </button>
                             </div>
@@ -2730,7 +2794,7 @@ function initializeAppLogic() {
                     <!-- Category Breakdown -->
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
                         <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center"> 
                                 <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
                                     <i class="fas fa-chart-pie text-white text-sm"></i>
                                 </div>
@@ -2856,7 +2920,7 @@ function initializeAppLogic() {
 
         const hasPin = auth.hasPin();
         const profile = appState.profile || { name: 'Pengguna Frixsave', currency: 'IDR', theme: 'light' };
-        return `
+        return ` 
             <div class="space-y-6 sm:space-y-8 fade-in">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
@@ -2869,7 +2933,7 @@ function initializeAppLogic() {
                 <!-- Profile Settings -->
                 <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
                     <div class="flex items-center mb-6">
-                        <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
+                        <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
                             <i class="fas fa-user text-white text-sm"></i>
                         </div>
                         <h3 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Pengaturan Profil</h3>
@@ -2935,7 +2999,7 @@ function initializeAppLogic() {
                         <button
                             type="button"
                             onclick="saveProfileSettings()"
-                            class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 sm:px-8 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
+                            class="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-6 sm:px-8 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
                         >
                             <i class="fas fa-save mr-2"></i>Simpan Perubahan
                         </button>
@@ -2968,7 +3032,7 @@ function initializeAppLogic() {
                             <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                                 ${hasPin ? `
                                     <button
-                                        onclick="showChangePinModal()"
+                                        onclick="showChangePinModal()" 
                                         class="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-xs sm:text-sm"
                                     >
                                         <i class="fas fa-edit mr-2"></i>Ubah PIN
@@ -3018,7 +3082,7 @@ function initializeAppLogic() {
                         </button>
                         
                         <button onclick="backupData()" class="flex flex-col items-center p-4 sm:p-6 bg-white/50 rounded-2xl border border-white/30 hover:bg-white/70 transition-all duration-300 group dark:bg-slate-700/50 dark:border-slate-600 dark:hover:bg-slate-700">
-                            <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mb-3 sm:mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                            <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-3 sm:mb-4 shadow-lg group-hover:scale-110 transition-transform">
                                 <i class="fas fa-cloud-upload-alt text-white text-lg sm:text-xl"></i>
                             </div>
                             <h4 class="font-semibold text-gray-800 text-sm sm:text-base mb-1 dark:text-gray-200">Backup Data</h4>
@@ -3128,7 +3192,7 @@ function initializeAppLogic() {
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <button onclick="checkDataIntegrity()" class="flex flex-col items-center p-4 bg-white/50 rounded-2xl border border-white/30 hover:bg-white/70 transition-all duration-300 group">
                                 <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
-                                    <i class="fas fa-search text-white text-lg"></i>
+                                    <i class="fas fa-search text-white text-lg"></i> 
                                 </div>
                                 <h5 class="font-semibold text-gray-800 text-sm mb-1">Cek Data</h5>
                                 <p class="text-xs text-gray-500 text-center">Verifikasi integritas data</p>
@@ -3215,7 +3279,7 @@ function initializeAppLogic() {
                         <div class="relative flex justify-between items-start">
                             <div class="flex-1">
                                 <div class="flex items-center mb-2">
-                                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-2xl flex items-center justify-center mr-3 backdrop-blur-sm">
+                                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-2xl flex items-center justify-center mr-3 backdrop-blur-sm"> 
                                         <i class="fas fa-paper-plane text-lg sm:text-xl"></i>
                                     </div>
                                     <div>
@@ -3265,7 +3329,7 @@ function initializeAppLogic() {
                             <!-- Enhanced Amount Input -->
                             <div class="relative group">
                                 <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 flex items-center">
-                                    <div class="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mr-2 shadow-lg">
+                                    <div class="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-green-400 to-indigo-500 rounded-full flex items-center justify-center mr-2 shadow-lg">
                                         <i class="fas fa-coins text-white text-xs"></i>
                                     </div>
                                     Jumlah
@@ -3315,7 +3379,7 @@ function initializeAppLogic() {
                                 <!-- Date Input -->
                                 <div class="relative group">
                                     <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 flex items-center">
-                                        <div class="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mr-2 shadow-lg">
+                                        <div class="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full flex items-center justify-center mr-2 shadow-lg">
                                             <i class="fas fa-calendar text-white text-xs"></i>
                                         </div>
                                         Tanggal
@@ -4199,6 +4263,16 @@ function initializeAppLogic() {
     window.toggleSidebar = toggleSidebar;
     function toggleSidebar() {
         appState.sidebarOpen = !appState.sidebarOpen;
+        render();
+    }
+
+    // User Dropdown Toggle
+    window.toggleUserDropdown = toggleUserDropdown; // Expose ke global scope
+    function toggleUserDropdown(event) {
+        if (event) {
+            event.stopPropagation(); // Mencegah event klik menyebar ke listener document
+        }
+        appState.userDropdownOpen = !appState.userDropdownOpen;
         render();
     }
 
@@ -5432,10 +5506,10 @@ function initializeAppLogic() {
     }
 
     window.saveProfileSettings = saveProfileSettings;
-    async function saveProfileSettings() {
+    async function saveProfileSettings(isAppearanceOnly = false) {
         const name = document.getElementById('full-name').value;
         const currency = document.getElementById('currency').value;
-        const theme = document.getElementById('theme').value;
+        
 
         if (appState.user) {
             const userId = appState.user.id;
@@ -5463,6 +5537,41 @@ function initializeAppLogic() {
                 render(); // Re-render the page to show the updated name
             } catch (e) {
                 console.error('❌ Exception during profile update:', e);
+                showSyncStatus('error', 'Terjadi kesalahan saat menyimpan.');
+            }
+        }
+    }
+
+    window.saveAppearanceSettings = saveAppearanceSettings;
+    async function saveAppearanceSettings() {
+        const theme = document.getElementById('theme').value;
+        const accentColor = document.querySelector('input[name="accent-color"]:checked').value;
+
+        if (appState.user) {
+            const userId = appState.user.id;
+            const updates = { theme, accentColor, updated_at: new Date().toISOString() };
+
+            try {
+                // Save to Supabase and wait for the result
+                const { data, error } = await api.updateUser(userId, updates);
+
+                if (error || !data || data.length === 0) {
+                    console.error('❌ Supabase appearance update error:', error);
+                    showSyncStatus('error', 'Gagal menyimpan pengaturan tampilan.');
+                    return;
+                }
+
+                // Update local state with the new data from the database
+                appState.user = data[0];
+                appState.profile.theme = appState.user.theme;
+                appState.profile.accentColor = appState.user.accent_color;
+                localStorage.setItem('frixsave_user', JSON.stringify(appState.user));
+
+                showSyncStatus('success', 'Pengaturan tampilan berhasil disimpan & disinkronisasi!');
+                applyAppearance(appState.profile.theme, appState.profile.accentColor);
+                render(); // Re-render to apply changes everywhere
+            } catch (e) {
+                console.error('❌ Exception during appearance update:', e);
                 showSyncStatus('error', 'Terjadi kesalahan saat menyimpan.');
             }
         }
@@ -6739,4 +6848,13 @@ function initializeAppLogic() {
     // Log debug info on startup
     console.log('🚀 Frugal Living App Initialized');
     console.log('🔧 Debug tools available in console: window.debugFrugal');
+
+    // Close user dropdown when clicking outside
+    document.addEventListener('click', (event) => {
+        const dropdownContainer = document.getElementById('user-dropdown-container');
+        if (appState.userDropdownOpen && dropdownContainer && !dropdownContainer.contains(event.target)) {
+            appState.userDropdownOpen = false;
+            render();
+        }
+    });
 }
