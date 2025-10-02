@@ -1360,17 +1360,6 @@ function initializeAppLogic() {
                         <div class="flex-1 px-4 py-6 space-y-2 border-t border-gray-100 dark:border-slate-700 overflow-y-auto">
                             ${renderMenuItems()}
                         </div>
-
-                        <!-- Logout Button at the bottom -->
-                        <div class="px-4 py-4 border-t border-gray-100 dark:border-slate-700">
-                            <button
-                                onclick="handleLogout()"
-                                class="w-full flex items-center px-4 py-3 text-left rounded-2xl font-semibold transition-all duration-300 group text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300"
-                            >
-                                <i class="fas fa-sign-out-alt mr-3 w-5 group-hover:scale-110 transition-transform"></i>
-                                Keluar
-                            </button>
-                        </div>
                     </div>
                 </div>
 
@@ -1397,7 +1386,7 @@ function initializeAppLogic() {
                         </div>
 
                         ${renderBottomNavItem('budgets', 'Anggaran', 'fas fa-chart-pie')}
-                        ${renderBottomNavItem('settings', 'Profil', 'fas fa-user')}
+                        ${renderBottomNavItem('reports', 'Laporan', 'fas fa-chart-bar')}
                     </div>
                 </div>
 
@@ -6303,61 +6292,64 @@ function initializeAppLogic() {
             </div>
 
             <!-- Desktop Table View -->
-            <div class="hidden sm:block overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tanggal</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Deskripsi</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Kategori</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Jumlah</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200/50">
-                        ${transactions.map(transaction => `
-                            <tr class="hover:bg-white/60 transition-all duration-300 group transaction-item">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    ${new Date(transaction.date).toLocaleDateString('id-ID')}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-900 font-medium">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-8 h-8 bg-gradient-to-br from-${transaction.type === 'income' ? 'green' : 'red'}-400 to-${transaction.type === 'income' ? 'emerald' : 'rose'}-500 rounded-xl flex items-center justify-center shadow-lg">
-                                            <i class="fas fa-${transaction.type === 'income' ? 'arrow-up' : 'arrow-down'} text-white text-xs"></i>
-                                        </div>
-                                        <span>${transaction.description}</span>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-${transaction.type === 'income' ? 'green' : 'red'}-100 text-${transaction.type === 'income' ? 'green' : 'red'}-800 shadow-sm">
-                                        ${transaction.category}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold">
-                                    <span class="text-${transaction.type === 'income' ? 'green' : 'red'}-600">
-                                        ${transaction.type === 'income' ? '+' : '-'}Rp ${(transaction.amount * 1000).toLocaleString('id-ID')}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100">
-                                        <button
-                                            onclick="showEditTransactionModal(${transaction.id})"
-                                            class="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-xl transition-all duration-300"
-                                        >
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button
-                                            onclick="deleteTransaction(${transaction.id})"
-                                            class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-xl transition-all duration-300"
-                                        >
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+            <div class="hidden sm:block p-2">
+                <!-- Header -->
+                <div class="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <div class="col-span-4">Deskripsi</div>
+                    <div class="col-span-2">Kategori</div>
+                    <div class="col-span-2">Tanggal</div>
+                    <div class="col-span-2 text-right">Jumlah</div>
+                    <div class="col-span-2 text-center">Aksi</div>
+                </div>
+                <!-- List -->
+                <div class="space-y-2">
+                    ${transactions.map(transaction => `
+                        <div class="grid grid-cols-12 gap-4 items-center p-4 bg-white/80 dark:bg-slate-700/50 backdrop-blur-sm rounded-2xl shadow-md border border-white/30 dark:border-slate-600/50 hover:shadow-lg hover:border-indigo-200 dark:hover:border-indigo-500/50 transition-all duration-300 group transaction-item">
+                            <!-- Deskripsi -->
+                            <div class="col-span-4 flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-gradient-to-br from-${transaction.type === 'income' ? 'green' : 'red'}-400 to-${transaction.type === 'income' ? 'emerald' : 'rose'}-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                                    <i class="fas fa-${transaction.type === 'income' ? 'arrow-up' : 'arrow-down'} text-white text-sm"></i>
+                                </div>
+                                <p class="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate" title="${transaction.description}">${transaction.description}</p>
+                            </div>
+                            <!-- Kategori -->
+                            <div class="col-span-2">
+                                <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-${transaction.type === 'income' ? 'green' : 'red'}-100 text-${transaction.type === 'income' ? 'green' : 'red'}-800 dark:bg-opacity-20 dark:text-${transaction.type === 'income' ? 'green' : 'red'}-300 shadow-sm">
+                                    ${transaction.category}
+                                </span>
+                            </div>
+                            <!-- Tanggal -->
+                            <div class="col-span-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                ${new Date(transaction.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </div>
+                            <!-- Jumlah -->
+                            <div class="col-span-2 text-right text-sm font-bold">
+                                <span class="text-${transaction.type === 'income' ? 'green' : 'red'}-600 dark:text-${transaction.type === 'income' ? 'green' : 'red'}-400">
+                                    ${transaction.type === 'income' ? '+' : '-'}Rp ${(transaction.amount * 1000).toLocaleString('id-ID')}
+                                </span>
+                            </div>
+                            <!-- Aksi -->
+                            <td class="col-span-2 text-center">
+                                <div class="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <button
+                                        onclick="showEditTransactionModal(${transaction.id})"
+                                        class="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-500/20 p-2 rounded-xl transition-all duration-300"
+                                        title="Edit Transaksi"
+                                    >
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button
+                                        onclick="deleteTransaction(${transaction.id})"
+                                        class="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/20 p-2 rounded-xl transition-all duration-300"
+                                        title="Hapus Transaksi"
+                                    >
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
         `;
     }
