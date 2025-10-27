@@ -348,7 +348,6 @@ function initializeAppLogic() {
         },
         goals: [],
         receivables: [],
-        debts: [], // 1. State for Debts
         userManagement: {
             currentPage: 1,
             usersPerPage: 5, // Show 5 users per page
@@ -388,7 +387,7 @@ function initializeAppLogic() {
             showSyncStatus('info', 'Data diperbarui secara real-time.');
         };
 
-        const tables = ['transactions', 'budgets', 'goals', 'receivables', 'debts'];
+        const tables = ['transactions', 'budgets', 'goals', 'receivables'];
 
         tables.forEach(table => {
             const channel = supabase.channel(`public:${table}:user_id=eq.${userId}`)
@@ -654,41 +653,6 @@ function initializeAppLogic() {
                 .eq('id', receivableId);
             return { data, error };
         },
-
-        // Debt functions
-        async getDebts(userId) {
-            const { data, error } = await supabase
-                .from('debts')
-                .select('*')
-                .eq('user_id', userId)
-                .order('due_date', { ascending: true });
-            return { data, error };
-        },
-        
-        async createDebt(debtData) {
-            const { data, error } = await supabase
-                .from('debts')
-                .insert([debtData])
-                .select();
-            return { data, error };
-        },
-
-        async updateDebt(debtId, updates) {
-            const { data, error } = await supabase
-                .from('debts')
-                .update(updates)
-                .eq('id', debtId)
-                .select();
-            return { data, error };
-        },
-
-        async deleteDebt(debtId) {
-            const { data, error } = await supabase
-                .from('debts')
-                .delete()
-                .eq('id', debtId);
-            return { data, error };
-        }
     };
 
     // Hashing utility using Web Crypto API for enhanced security
@@ -770,7 +734,7 @@ function initializeAppLogic() {
                 currentPage: 'overview',
                 sidebarOpen: false,
                 showQuickAdd: false,
-                transactions: [], budgets: [], goals: [], receivables: [], debts: [],
+                transactions: [], budgets: [], goals: [], receivables: [],
                 userManagement: { currentPage: 1, usersPerPage: 5, totalUsers: 0 }
             };
 
@@ -878,17 +842,15 @@ function initializeAppLogic() {
                 { data: budgets, error: budgetError },
                 { data: goals, error: goalError },
                 { data: receivables, error: receivableError },
-                { data: debts, error: debtError }
             ] = await Promise.all([
                 api.getTransactions(userId, currentPage, transactionsPerPage, startDate, endDate),
                 api.getTransactionsSummary(userId, startDate, endDate),
                 api.getBudgets(userId),
                 api.getGoals(userId),
                 api.getReceivables(userId),
-                api.getDebts(userId)
             ]);
 
-            if (transError || budgetError || goalError || receivableError || debtError || summaryError) {
+            if (transError || budgetError || goalError || receivableError || summaryError) {
                 throw new Error('One or more data streams failed to load.');
             }
 
@@ -904,7 +866,6 @@ function initializeAppLogic() {
             appState.transactionManagement.totalTransactions = transCount || 0;
             appState.goals = goals || [];
             appState.receivables = receivables || [];
-            appState.debts = debts || [];
             
             console.log('✅ Data loaded from Supabase.');
             
@@ -1055,47 +1016,6 @@ function initializeAppLogic() {
                         await loadUserData();
                         render();
                         showSyncStatus('success', 'Piutang dihapus & disinkronisasi.');
-                    }
-                }
-            }
-        });
-    }
-
-    async function updateDebtStatus(debtId, status) {
-        if (!appState.user) return;
-
-        try {
-            if (useSupabase) {
-                const { data, error } = await api.updateDebt(debtId, { status });
-                if (error) {
-                    showSyncStatus('error', 'Gagal sync update status utang');
-                } else {
-                    await loadUserData();
-                    render();
-                    showSyncStatus('success', 'Status utang diperbarui & disinkronisasi');
-                }
-            }
-        } catch (error) {
-            showSyncStatus('error', 'Gagal memperbarui status utang');
-        } 
-    }
-
-    async function deleteDebt(debtId) {
-        showConfirmModal({
-            title: 'Hapus Utang?',
-            message: 'Apakah Anda yakin ingin menghapus catatan utang ini?',
-            confirmText: 'Ya, Hapus',
-            isDestructive: true,
-            onConfirm: async () => {
-                if (useSupabase) {
-                    const { error } = await api.deleteDebt(debtId);
-                    if (error) {
-                        showSyncStatus('error', 'Gagal menghapus utang.');
-                        console.error('Error deleting debt:', error);
-                    } else {
-                        await loadUserData();
-                        render();
-                        showSyncStatus('success', 'Utang berhasil dihapus.');
                     }
                 }
             }
@@ -1436,7 +1356,6 @@ function initializeAppLogic() {
             { id: 'transactions', label: 'Transaksi', icon: 'fas fa-receipt' },
             { id: 'budgets', label: 'Anggaran', icon: 'fas fa-chart-pie' },
             { id: 'receivables', label: 'Piutang', icon: 'fas fa-hand-holding-usd' },
-            { id: 'debts', label: 'Utang', icon: 'fas fa-credit-card' },
             { id: 'goals', label: 'Target', icon: 'fas fa-bullseye' },
             { id: 'reports', label: 'Laporan', icon: 'fas fa-chart-bar' },
             { id: 'settings', label: 'Pengaturan', icon: 'fas fa-cog' }
@@ -1482,8 +1401,6 @@ function initializeAppLogic() {
                 return renderBudgetsPage();
             case 'receivables':
                 return renderReceivablesPage();
-            case 'debts':
-                return renderDebtsPage();
             case 'reports':
                 return renderReportsPage();
             case 'goals':
@@ -2326,118 +2243,6 @@ function initializeAppLogic() {
         `;
     }
 
-    function renderDebtsPage() {
-        const syncStatusIndicator = useSupabase 
-            ? `<div class="flex items-center space-x-2 bg-green-100 dark:bg-green-500/20 px-3 py-1 rounded-full"><div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><span class="text-xs font-medium text-green-700 dark:text-green-300">Tersinkronisasi</span></div>`
-            : `<div class="flex items-center space-x-2 bg-yellow-100 dark:bg-yellow-500/20 px-3 py-1 rounded-full"><div class="w-2 h-2 bg-yellow-500 rounded-full"></div><span class="text-xs font-medium text-yellow-700 dark:text-yellow-300">Mode Lokal</span></div>`;
-
-        const totalUnpaid = appState.debts.filter(d => d.status === 'unpaid').reduce((sum, d) => sum + d.amount, 0);
-        const totalPaid = appState.debts.filter(d => d.status === 'paid').reduce((sum, d) => sum + d.amount, 0);
-
-        return ` 
-            <div class="space-y-6 fade-in">
-                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                    <div>
-                        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent dark:from-red-400 dark:to-orange-400">Catatan Utang</h1>
-                        <p class="text-gray-600 text-sm sm:text-base mt-1 dark:text-gray-400">Kelola dan lacak semua kewajiban Anda</p>
-                    </div>
-                    <div class="flex flex-col sm:flex-row items-center gap-3">
-                        ${syncStatusIndicator}
-                        <button onclick="showAddDebtForm()" class="w-full sm:w-auto bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white px-4 sm:px-6 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center">
-                            <i class="fas fa-plus mr-2"></i>
-                            <span class="text-sm sm:text-base">Tambah Utang</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20 dark:border-slate-700">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Utang (Belum Lunas)</p>
-                                <p class="text-2xl font-bold text-red-600 dark:text-red-400">Rp ${(totalUnpaid * 1000).toLocaleString('id-ID')}</p>
-                            </div>
-                            <div class="bg-gradient-to-br from-orange-400 to-red-500 p-4 rounded-2xl shadow-lg">
-                                <i class="fas fa-hourglass-half text-white text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20 dark:border-slate-700">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Sudah Dibayar</p>
-                                <p class="text-2xl font-bold text-green-600 dark:text-green-400">Rp ${(totalPaid * 1000).toLocaleString('id-ID')}</p>
-                            </div>
-                            <div class="bg-gradient-to-br from-green-400 to-emerald-500 p-4 rounded-2xl shadow-lg">
-                                <i class="fas fa-check-circle text-white text-xl"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Add Debt Form -->
-                <div id="debt-form" class="hidden bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 dark:border-slate-700">
-                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white mb-4 sm:mb-6">Tambah Catatan Utang Baru</h3>
-                    <form onsubmit="handleAddDebt(event)" class="space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <input type="text" id="debt-creditor" placeholder="Nama Pemberi Pinjaman" class="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-red-500/20 focus:border-red-500 font-medium bg-white/80 dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
-                            <input type="number" step="1000" id="debt-amount" placeholder="Jumlah Utang (Rp)" class="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-red-500/20 focus:border-red-500 font-medium bg-white/80 dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tanggal Jatuh Tempo</label>
-                            <input type="date" id="debt-due-date" class="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-red-500/20 focus:border-red-500 font-medium bg-white/80 dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
-                        </div>
-                        <div>
-                            <textarea id="debt-description" placeholder="Deskripsi (misal: Cicilan motor)" rows="2" class="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-red-500/20 focus:border-red-500 font-medium bg-white/80 dark:bg-slate-700 dark:border-slate-600 dark:text-white"></textarea>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button type="submit" class="flex-1 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg"><i class="fas fa-check mr-2"></i>Simpan</button>
-                            <button type="button" onclick="hideAddDebtForm()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-xl font-semibold dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-gray-200"><i class="fas fa-times mr-2"></i>Batal</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Debts List -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    ${appState.debts.sort((a, b) => new Date(a.due_date) - new Date(b.due_date)).map(debt => {
-                        const isPaid = debt.status === 'paid';
-                        const dueDate = new Date(debt.due_date);
-                        const today = new Date();
-                        today.setHours(0,0,0,0);
-                        const isOverdue = !isPaid && dueDate < today;
-                        const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-
-                        return ` 
-                            <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20 dark:border-slate-700 flex flex-col ${isPaid ? 'opacity-60' : ''}">
-                                <div class="flex justify-between items-start mb-3">
-                                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${debt.creditor_name}</h3>
-                                    <span class="text-xs px-2 py-1 rounded-full font-medium ${isPaid ? 'bg-green-100 text-green-700' : isOverdue ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">${isPaid ? 'Lunas' : isOverdue ? 'Terlewat' : `${daysDiff} hari lagi`}</span>
-                                </div>
-                                <div class="flex-grow space-y-3">
-                                    <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">Rp ${(debt.amount * 1000).toLocaleString('id-ID')}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">Jatuh Tempo: ${dueDate.toLocaleDateString('id-ID')}</p>
-                                    ${debt.description ? `<p class="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/50 p-2 rounded-lg">${debt.description}</p>` : ''}
-                                </div>
-                                <div class="mt-4 pt-4 border-t border-gray-200/80 dark:border-slate-700/80 flex items-center gap-2">
-                                    ${!isPaid ? `<button onclick="handleMarkDebtAsPaid(${debt.id})" class="flex-1 bg-green-100 hover:bg-green-200 text-green-700 font-semibold px-3 py-2 rounded-xl transition-all duration-300 text-sm"><i class="fas fa-check mr-1"></i> Tandai Lunas</button>` : ''}
-                                    <button onclick="deleteDebt(${debt.id})" class="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold px-3 py-2 rounded-xl transition-all duration-300 text-sm"><i class="fas fa-trash mr-1"></i> Hapus</button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-
-                ${appState.debts.length === 0 ? `
-                    <div class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-3xl p-8 sm:p-12 shadow-xl border border-white/20 dark:border-slate-700 text-center">
-                        <h4 class="text-lg sm:text-xl font-semibold text-gray-700 mb-2 dark:text-gray-200">Tidak Ada Catatan Utang</h4>
-                        <p class="text-gray-500 mb-6 text-sm sm:text-base dark:text-gray-400">Catat utang Anda untuk manajemen keuangan yang lebih baik.</p>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-
     function renderGoalsPage() {
         const syncStatusIndicator = useSupabase 
             ? `<div class="flex items-center space-x-2 bg-green-100 dark:bg-green-500/20 px-3 py-1 rounded-full"><div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><span class="text-xs font-medium text-green-700 dark:text-green-300">Tersinkronisasi</span></div>`
@@ -2461,8 +2266,7 @@ function initializeAppLogic() {
 
                 <div id="goal-form" class="hidden bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
                     <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
-                        <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
-                            <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
+                        <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
                             <i class="fas fa-bullseye text-white text-sm"></i>
                         </div>
                         Buat Target Baru
@@ -2539,16 +2343,16 @@ function initializeAppLogic() {
                                         <span>Target: Rp ${(goal.target_amount * 1000).toLocaleString('id-ID')}</span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-3">
-                                        <div 
-                                            class="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-300" 
+                                        <div
+                                            class="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-300"
                                             style="width: ${Math.min(progress, 100)}%"
                                         ></div>
                                     </div>
                                     <p class="text-sm text-gray-600">${progress.toFixed(1)}% Tercapai</p>
                                 </div>
                                 <div class="mt-4 pt-4 border-t border-gray-200/80">
-                                    <div class="flex items-center gap-2">
-                                        <input type="number" step="1000" id="add-funds-input-${goal.id}" class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Tambah dana (Rp)">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <input type="number" step="1000" id="add-funds-input-${goal.id}" class="flex-grow min-w-[100px] px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Tambah dana (Rp)">
                                         <button onclick="handleAddFundsToGoal(${goal.id})" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-3 py-2 rounded-xl transition-all duration-300 flex-shrink-0">
                                             <i class="fas fa-plus"></i>
                                         </button>
@@ -5248,10 +5052,9 @@ function initializeAppLogic() {
                         supabase.from('budgets').delete().eq('user_id', userId),
                         supabase.from('goals').delete().eq('user_id', userId),
                         supabase.from('receivables').delete().eq('user_id', userId),
-                        supabase.from('debts').delete().eq('user_id', userId)
                     ]);
 
-                    Object.assign(appState, { transactions: [], budgets: [], goals: [], receivables: [], debts: [] });
+                    Object.assign(appState, { transactions: [], budgets: [], goals: [], receivables: [] });
                     render();
                     showSyncStatus('success', 'Semua data berhasil dihapus dari cloud.');
                 }
@@ -5496,9 +5299,9 @@ function initializeAppLogic() {
 
     window.saveProfileSettings = saveProfileSettings;
     async function saveProfileSettings(isAppearanceOnly = false) {
-        const name = document.getElementById('full-name').value;
-        const currency = document.getElementById('currency').value;
-        
+        const name = document.getElementById('full-name')?.value;
+        const currency = document.getElementById('currency')?.value;
+        const theme = document.getElementById('theme')?.value;
 
         if (appState.user) {
             const userId = appState.user.id;
@@ -5521,46 +5324,14 @@ function initializeAppLogic() {
                 appState.profile.currency = appState.user.currency;
                 appState.profile.theme = appState.user.theme;
                 localStorage.setItem('frixsave_user', JSON.stringify(appState.user));
+                
+                // Apply the new appearance settings
+                applyAppearance(appState.profile.theme, appState.profile.accentColor);
 
                 showSyncStatus('success', 'Pengaturan profil berhasil disimpan & disinkronisasi!');
                 render(); // Re-render the page to show the updated name
             } catch (e) {
                 console.error('❌ Exception during profile update:', e);
-                showSyncStatus('error', 'Terjadi kesalahan saat menyimpan.');
-            }
-        }
-    }
-
-    window.saveAppearanceSettings = saveAppearanceSettings;
-    async function saveAppearanceSettings() {
-        const theme = document.getElementById('theme').value;
-        const accentColor = document.querySelector('input[name="accent-color"]:checked').value;
-
-        if (appState.user) {
-            const userId = appState.user.id;
-            const updates = { theme, accentColor, updated_at: new Date().toISOString() };
-
-            try {
-                // Save to Supabase and wait for the result
-                const { data, error } = await api.updateUser(userId, updates);
-
-                if (error || !data || data.length === 0) {
-                    console.error('❌ Supabase appearance update error:', error);
-                    showSyncStatus('error', 'Gagal menyimpan pengaturan tampilan.');
-                    return;
-                }
-
-                // Update local state with the new data from the database
-                appState.user = data[0];
-                appState.profile.theme = appState.user.theme;
-                appState.profile.accentColor = appState.user.accent_color;
-                localStorage.setItem('frixsave_user', JSON.stringify(appState.user));
-
-                showSyncStatus('success', 'Pengaturan tampilan berhasil disimpan & disinkronisasi!');
-                applyAppearance(appState.profile.theme, appState.profile.accentColor);
-                render(); // Re-render to apply changes everywhere
-            } catch (e) {
-                console.error('❌ Exception during appearance update:', e);
                 showSyncStatus('error', 'Terjadi kesalahan saat menyimpan.');
             }
         }
@@ -5578,7 +5349,6 @@ function initializeAppLogic() {
                 budgets: appState.budgets,
                 goals: appState.goals,
                 receivables: appState.receivables,
-                debts: appState.debts,
             },
             exportDate: new Date().toISOString()
         };
@@ -6086,18 +5856,6 @@ function initializeAppLogic() {
         }, () => {
             showSyncStatus('error', 'Gagal menyalin hash.');
         });
-    }
-
-    window.showAddDebtForm = showAddDebtForm;
-    function showAddDebtForm() {
-        const form = document.getElementById('debt-form');
-        if (form) form.classList.remove('hidden');
-    }
-
-    window.hideAddDebtForm = hideAddDebtForm;
-    function hideAddDebtForm() {
-        const form = document.getElementById('debt-form');
-        if (form) form.classList.add('hidden');
     }
 
     window.viewUserDetails = viewUserDetails;
@@ -6784,8 +6542,7 @@ function initializeAppLogic() {
             transactions: appState.transactions,
             budgets: appState.budgets,
             goals: appState.goals,
-            receivables: appState.receivables,
-            debts: appState.debts
+            receivables: appState.receivables
         }),
         getStorageData: (userId) => {
             const id = userId || (appState.user ? appState.user.id : null);
@@ -6795,7 +6552,6 @@ function initializeAppLogic() {
                 budgets: JSON.parse(localStorage.getItem(`budgets_${id}`) || '[]'),
                 goals: JSON.parse(localStorage.getItem(`goals_${id}`) || '[]'),
                 receivables: JSON.parse(localStorage.getItem(`receivables_${id}`) || '[]'),
-                debts: JSON.parse(localStorage.getItem(`debts_${id}`) || '[]')
             };
         }
     };
