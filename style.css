@@ -210,3 +210,38 @@ details[open] > summary .accordion-icon {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
 }
+
+/* Frixsave AI Chat Styles */
+.chat-bubble-user {
+    background-color: #4f46e5; /* theme-indigo-600 */
+    color: white;
+    border-radius: 1.5rem 1.5rem 0.25rem 1.5rem;
+}
+
+.chat-bubble-model {
+    background-color: #eef2ff; /* indigo-50 */
+    color: #374151; /* gray-700 */
+    border-radius: 1.5rem 1.5rem 1.5rem 0.25rem;
+}
+
+.dark .chat-bubble-model {
+    background-color: #374151; /* slate-700 */
+    color: #d1d5db; /* gray-300 */
+}
+
+/* Typing indicator for AI */
+@keyframes typing-dot-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+}
+
+.typing-indicator span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #9ca3af; /* gray-400 */
+    animation: typing-dot-bounce 1.4s infinite ease-in-out both;
+}
+.typing-indicator span:nth-child(2) { animation-delay: .2s; }
+.typing-indicator span:nth-child(3) { animation-delay: .4s; }
