@@ -1355,8 +1355,8 @@ function initializeAppLogic() {
             { id: 'overview', label: 'Ringkasan', icon: 'fas fa-chart-line' },
             { id: 'transactions', label: 'Transaksi', icon: 'fas fa-receipt' },
             { id: 'budgets', label: 'Anggaran', icon: 'fas fa-chart-pie' },
-            { id: 'receivables', label: 'Piutang', icon: 'fas fa-hand-holding-usd' },
             { id: 'goals', label: 'Target', icon: 'fas fa-bullseye' },
+            { id: 'receivables', label: 'Piutang', icon: 'fas fa-hand-holding-usd' },
             { id: 'reports', label: 'Laporan', icon: 'fas fa-chart-bar' },
             { id: 'settings', label: 'Pengaturan', icon: 'fas fa-cog' }
         ];
@@ -2472,7 +2472,7 @@ function initializeAppLogic() {
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group">
                         <div class="flex items-center justify-between mb-4"> 
-                            <div class="bg-gradient-to-br from-blue-400 to-indigo-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                            <div class="bg-gradient-to-br from-blue-400 to-indigo-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform dark:shadow-blue-500/30">
                                 <i class="fas fa-arrow-up text-white text-lg sm:text-xl"></i>
                             </div>
                             <div class="text-right">
@@ -2481,7 +2481,7 @@ function initializeAppLogic() {
                         </div>
                         <div>
                             <p class="text-xs sm:text-sm font-medium text-gray-600 mb-2">Rata-rata Pemasukan</p>
-                            <p class="text-xl sm:text-2xl font-bold text-blue-600">Rp ${(monthlyIncome * 1000).toLocaleString('id-ID')}</p>
+                            <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">Rp ${(monthlyIncome * 1000).toLocaleString('id-ID')}</p>
                             <p class="text-xs text-blue-500 mt-1 flex items-center">
                                 <i class="fas fa-trending-up mr-1"></i>
                                 Per bulan
@@ -2491,7 +2491,7 @@ function initializeAppLogic() {
                     
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="bg-gradient-to-br from-red-400 to-rose-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                            <div class="bg-gradient-to-br from-red-400 to-rose-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform dark:shadow-red-500/30">
                                 <i class="fas fa-arrow-down text-white text-lg sm:text-xl"></i>
                             </div>
                             <div class="text-right">
@@ -2500,7 +2500,7 @@ function initializeAppLogic() {
                         </div>
                         <div>
                             <p class="text-xs sm:text-sm font-medium text-gray-600 mb-2">Rata-rata Pengeluaran</p>
-                            <p class="text-xl sm:text-2xl font-bold text-red-600">Rp ${(monthlyExpense * 1000).toLocaleString('id-ID')}</p>
+                            <p class="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">Rp ${(monthlyExpense * 1000).toLocaleString('id-ID')}</p>
                             <p class="text-xs text-red-500 mt-1 flex items-center">
                                 <i class="fas fa-trending-down mr-1"></i>
                                 Per bulan
@@ -2510,7 +2510,7 @@ function initializeAppLogic() {
                     
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="bg-gradient-to-br from-green-400 to-emerald-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                            <div class="bg-gradient-to-br from-green-400 to-emerald-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform dark:shadow-green-500/30">
                                 <i class="fas fa-piggy-bank text-white text-lg sm:text-xl"></i>
                             </div>
                             <div class="text-right">
@@ -2519,7 +2519,7 @@ function initializeAppLogic() {
                         </div>
                         <div>
                             <p class="text-xs sm:text-sm font-medium text-gray-600 mb-2">Rata-rata Tabungan</p>
-                            <p class="text-xl sm:text-2xl font-bold text-green-600">Rp ${(monthlySavings * 1000).toLocaleString('id-ID')}</p>
+                            <p class="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">Rp ${(monthlySavings * 1000).toLocaleString('id-ID')}</p>
                             <p class="text-xs text-green-500 mt-1 flex items-center">
                                 <i class="fas fa-chart-line mr-1"></i>
                                 Per bulan
@@ -2529,7 +2529,7 @@ function initializeAppLogic() {
                     
                     <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 group">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="bg-gradient-to-br from-purple-400 to-pink-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                            <div class="bg-gradient-to-br from-purple-400 to-pink-500 p-3 sm:p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform dark:shadow-purple-500/30">
                                 <i class="fas fa-percentage text-white text-lg sm:text-xl"></i>
                             </div>
                             <div class="text-right">
@@ -2538,7 +2538,7 @@ function initializeAppLogic() {
                         </div>
                         <div>
                             <p class="text-xs sm:text-sm font-medium text-gray-600 mb-2">Tingkat Tabungan</p>
-                            <p class="text-xl sm:text-2xl font-bold text-purple-600">${savingsRate.toFixed(1)}%</p>
+                            <p class="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">${savingsRate.toFixed(1)}%</p>
                             <p class="text-xs text-purple-500 mt-1 flex items-center">
                                 <i class="fas fa-target mr-1"></i>
                                 ${savingsRate >= 20 ? 'Excellent!' : savingsRate >= 10 ? 'Good' : 'Needs improvement'}
@@ -2550,10 +2550,10 @@ function initializeAppLogic() {
                 <!-- Charts and Analysis Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                     <!-- Monthly Trend Chart -->
-                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
+                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
                         <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center"> 
-                                <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center dark:text-white"> 
+                                <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg dark:shadow-blue-500/30">
                                     <i class="fas fa-chart-line text-white text-sm"></i>
                                 </div>
                                 Tren Bulanan
@@ -2566,11 +2566,11 @@ function initializeAppLogic() {
                         </div>
                         
                         ${appState.transactions.length === 0 ? `
-                            <div class="text-center py-8 sm:py-12">
+                            <div class="text-center py-8 sm:py-12 dark:text-gray-400">
                                 <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
                                     <i class="fas fa-chart-line text-2xl sm:text-3xl text-indigo-400"></i>
                                 </div>
-                                <h4 class="text-base sm:text-lg font-semibold text-gray-700 mb-2">Belum Ada Data</h4>
+                                <h4 class="text-base sm:text-lg font-semibold text-gray-700 mb-2 dark:text-gray-200">Belum Ada Data</h4>
                                 <p class="text-gray-500 text-sm sm:text-base mb-4 sm:mb-6">Tambahkan transaksi untuk melihat tren keuangan</p>
                                 <button onclick="showQuickAddModal()" class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base">
                                     <i class="fas fa-plus mr-2"></i>Tambah Transaksi
@@ -2585,10 +2585,10 @@ function initializeAppLogic() {
                     </div>
 
                     <!-- Category Breakdown -->
-                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
+                    <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
                         <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center"> 
-                                <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center dark:text-white"> 
+                                <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg dark:shadow-purple-500/30">
                                     <i class="fas fa-chart-pie text-white text-sm"></i>
                                 </div>
                                 Kategori Pengeluaran
@@ -2596,11 +2596,11 @@ function initializeAppLogic() {
                         </div>
                         
                         ${topCategories.length === 0 ? `
-                            <div class="text-center py-8 sm:py-12">
+                            <div class="text-center py-8 sm:py-12 dark:text-gray-400">
                                 <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
                                     <i class="fas fa-chart-pie text-2xl sm:text-3xl text-purple-400"></i>
                                 </div>
-                                <h4 class="text-base sm:text-lg font-semibold text-gray-700 mb-2">Belum Ada Pengeluaran</h4>
+                                <h4 class="text-base sm:text-lg font-semibold text-gray-700 mb-2 dark:text-gray-200">Belum Ada Pengeluaran</h4>
                                 <p class="text-gray-500 text-sm sm:text-base">Catat pengeluaran untuk melihat breakdown kategori</p>
                             </div>
                         ` : `
@@ -2614,12 +2614,12 @@ function initializeAppLogic() {
                                         const colors = ['blue', 'green', 'purple', 'red', 'orange'];
                                         const color = colors[index % colors.length];
                                         return `
-                                            <div class="flex items-center justify-between p-3 bg-white/50 rounded-xl border border-white/30">
+                                            <div class="flex items-center justify-between p-3 bg-white/50 dark:bg-slate-700/50 rounded-xl border border-white/30 dark:border-slate-600/50">
                                                 <div class="flex items-center space-x-3">
                                                     <div class="w-3 h-3 bg-${color}-500 rounded-full"></div>
-                                                    <span class="text-sm font-medium text-gray-700">${category}</span>
+                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">${category}</span>
                                                 </div>
-                                                <span class="text-sm font-bold text-gray-800">Rp ${(amount * 1000).toLocaleString('id-ID')}</span>
+                                                <span class="text-sm font-bold text-gray-800 dark:text-gray-100">Rp ${(amount * 1000).toLocaleString('id-ID')}</span>
                                             </div>
                                         `;
                                     }).join('')}
@@ -2630,10 +2630,10 @@ function initializeAppLogic() {
                 </div>
 
                 <!-- Financial Health Score -->
-                <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
+                <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
                     <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
-                            <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center dark:text-white">
+                            <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg dark:shadow-green-500/30">
                                 <i class="fas fa-heartbeat text-white text-sm"></i>
                             </div>
                             Skor Kesehatan Keuangan
@@ -2642,7 +2642,7 @@ function initializeAppLogic() {
                     
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                         <!-- Savings Rate Score -->
-                        <div class="text-center p-4 sm:p-6 bg-white/50 rounded-2xl border border-white/30">
+                        <div class="text-center p-4 sm:p-6 bg-white/50 dark:bg-slate-700/50 rounded-2xl border border-white/30 dark:border-slate-600/50">
                             <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 relative">
                                 <div class="w-full h-full bg-gray-200 rounded-full"></div>
                                 <div class="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" style="clip-path: polygon(0 0, ${Math.min(savingsRate * 5, 100)}% 0, ${Math.min(savingsRate * 5, 100)}% 100%, 0 100%)"></div>
@@ -2650,12 +2650,12 @@ function initializeAppLogic() {
                                     <span class="text-lg sm:text-xl font-bold text-gray-700">${savingsRate.toFixed(0)}%</span>
                                 </div>
                             </div>
-                            <h4 class="font-semibold text-gray-800 text-sm sm:text-base mb-1">Tingkat Tabungan</h4>
+                            <h4 class="font-semibold text-gray-800 dark:text-gray-100 text-sm sm:text-base mb-1">Tingkat Tabungan</h4>
                             <p class="text-xs sm:text-sm text-gray-500">${savingsRate >= 20 ? 'Sangat Baik' : savingsRate >= 10 ? 'Baik' : 'Perlu Perbaikan'}</p>
                         </div>
                         
                         <!-- Budget Adherence -->
-                        <div class="text-center p-4 sm:p-6 bg-white/50 rounded-2xl border border-white/30">
+                        <div class="text-center p-4 sm:p-6 bg-white/50 dark:bg-slate-700/50 rounded-2xl border border-white/30 dark:border-slate-600/50">
                             <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 relative">
                                 <div class="w-full h-full bg-gray-200 dark:bg-slate-700 rounded-full"></div>
                                 <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full" style="clip-path: polygon(0 0, ${budgetAdherence.toFixed(0)}% 0, ${budgetAdherence.toFixed(0)}% 100%, 0 100%)"></div>
@@ -2668,7 +2668,7 @@ function initializeAppLogic() {
                         </div>
                         
                         <!-- Overall Score -->
-                        <div class="text-center p-4 sm:p-6 bg-white/50 rounded-2xl border border-white/30">
+                        <div class="text-center p-4 sm:p-6 bg-white/50 dark:bg-slate-700/50 rounded-2xl border border-white/30 dark:border-slate-600/50">
                             <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 relative">
                                 <div class="w-full h-full bg-gray-200 dark:bg-slate-700 rounded-full"></div>
                                 <div class="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full" style="clip-path: polygon(0 0, ${overallScore.toFixed(0)}% 0, ${overallScore.toFixed(0)}% 100%, 0 100%)"></div>
@@ -2682,12 +2682,12 @@ function initializeAppLogic() {
                     </div>
                     
                     <!-- Recommendations -->
-                    <div class="mt-6 sm:mt-8 p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
-                        <h4 class="font-semibold text-gray-800 mb-3 flex items-center text-sm sm:text-base">
+                    <div class="mt-6 sm:mt-8 p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 dark:bg-gradient-to-r dark:from-slate-700/50 dark:to-slate-800/50 dark:border-slate-600/50">
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center text-sm sm:text-base">
                             <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
                             Rekomendasi Perbaikan
                         </h4>
-                        <ul class="space-y-2 text-xs sm:text-sm text-gray-600">
+                        <ul class="space-y-2 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                             <li class="flex items-start">
                                 <i class="fas fa-check-circle text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
                                 <span>Tingkatkan tingkat tabungan menjadi minimal 20% dari pendapatan</span>
@@ -6453,7 +6453,10 @@ function initializeAppLogic() {
             const trendValues = Object.values(trendData);
             const labels = trendValues.map(d => d.label);
             const incomeData = trendValues.map(d => d.income);
-            const expenseData = trendValues.map(d => d.expense);
+            const expenseData = trendValues.map(d => d.expense);            
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            const textColor = isDarkMode ? 'rgba(255, 255, 255, 0.7)' : '#666';
 
             window.monthlyTrendChartInstance = new Chart(trendCtx, {
                 type: 'bar',
@@ -6466,11 +6469,24 @@ function initializeAppLogic() {
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { callback: value => 'Rp ' + (value * 1000).toLocaleString('id-ID') } } },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { 
+                                callback: value => 'Rp ' + (value * 1000).toLocaleString('id-ID'),
+                                color: textColor
+                            },
+                            grid: { color: gridColor }
+                        },
+                        x: {
+                            ticks: { color: textColor },
+                            grid: { display: false }
+                        }
+                    },
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                label: context => `${context.dataset.label}: Rp ${(context.parsed.y * 1000).toLocaleString('id-ID')}`
+                                label: context => `${context.dataset.label}: Rp ${(context.parsed.y * 1000).toLocaleString('id-ID')}`,
                             }
                         }
                     }
@@ -6490,6 +6506,8 @@ function initializeAppLogic() {
             if (topCategories.length > 0) {
                 const labels = topCategories.map(([category]) => category);
                 const data = topCategories.map(([, amount]) => amount);
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const textColor = isDarkMode ? 'rgba(255, 255, 255, 0.9)' : '#333';
 
                 window.categoryDoughnutChartInstance = new Chart(categoryCtx, {
                     type: 'doughnut',
@@ -6511,8 +6529,10 @@ function initializeAppLogic() {
                     },
                     options: {
                         responsive: true, maintainAspectRatio: false, cutout: '60%',
-                        plugins: {
-                            legend: { display: false },
+                        plugins: { 
+                            legend: { 
+                                display: false 
+                            },
                             tooltip: {
                                 callbacks: {
                                     label: context => {
