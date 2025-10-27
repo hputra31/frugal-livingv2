@@ -1468,9 +1468,10 @@ function initializeAppLogic() {
             ? `<div class="flex items-center space-x-2 bg-green-100 dark:bg-green-500/20 px-3 py-1 rounded-full"><div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><span class="text-xs font-medium text-green-700 dark:text-green-300">Tersinkronisasi</span></div>`
             : `<div class="flex items-center space-x-2 bg-yellow-100 dark:bg-yellow-500/20 px-3 py-1 rounded-full"><div class="w-2 h-2 bg-yellow-500 rounded-full"></div><span class="text-xs font-medium text-yellow-700 dark:text-yellow-300">Mode Lokal</span></div>`;
 
-        const totalIncome = appState.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-        const totalExpense = appState.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-        const balance = totalIncome - totalExpense;
+        // Menggunakan data ringkasan yang sudah difilter berdasarkan tanggal
+        const { income: totalIncome, expense: totalExpense, balance } = appState.transactionManagement.summary;
+        const startDate = appState.transactionManagement.startDate;
+        const endDate = appState.transactionManagement.endDate;
 
         // Logic for Financial Status
         let financialStatus;
@@ -1541,7 +1542,10 @@ function initializeAppLogic() {
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
                         <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-400">Ringkasan Keuangan</h1>
-                        <p class="text-gray-600 mt-2 dark:text-gray-400">Pantau kondisi keuangan Anda secara real-time</p>
+                        <p class="text-gray-600 mt-2 dark:text-gray-400">
+                            Menampilkan data dari <strong>${new Date(startDate).toLocaleDateString('id-ID')}</strong> hingga <strong>${new Date(endDate).toLocaleDateString('id-ID')}</strong>.
+                            <button onclick="navigateTo('transactions')" class="text-indigo-600 dark:text-indigo-400 font-semibold text-sm ml-2 hover:underline">(Ubah Filter)</button>
+                        </p>
                     </div>
                     ${syncStatusIndicator}
                 </div>
