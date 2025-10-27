@@ -297,11 +297,18 @@ function initializeAppLogic() {
     // Simple state management
     let appState = {
         user: null,
-        isLoading: true,
+        isLoading: true, // Initial loading state
         profile: { name: 'Pengguna Frixsave', currency: 'IDR', theme: 'light', accentColor: 'indigo' },
+        aiChat: {
+            messages: [], // Array of { role: 'user' | 'model', content: '...' }
+            isLoading: false,
+        },
         currentPage: 'overview',
         sidebarOpen: false,
         userDropdownOpen: false,
+        system: {
+            geminiApiKey: null
+        },
         overview: {
             categoryChartFilter: 'thisMonth' // 'today', 'thisWeek', 'thisMonth', 'thisYear'
         },
@@ -457,6 +464,25 @@ function initializeAppLogic() {
                 .from('users_with_stats')
                 .select('*')
                 .order('created_at', { ascending: true });
+            return { data, error };
+        },
+
+        // --- System Settings ---
+        async getSystemSetting(key) {
+            const { data, error } = await supabase
+                .from('system_settings')
+                .select('value')
+                .eq('key', key)
+                .single();
+            return { data, error };
+        },
+
+        async updateSystemSetting(key, value) {
+            const { data, error } = await supabase
+                .from('system_settings')
+                .upsert({ key: key, value: value }, { onConflict: 'key' })
+                .select()
+                .single(); // Add .single() to ensure the updated row is returned
             return { data, error };
         },
 
@@ -701,23 +727,17 @@ function initializeAppLogic() {
                 return { success: false, error: 'PIN salah' };
             }
 
-            let userRole = 'user';
-            if (useSupabase) {
-                if (dbUser && dbUser.role) {
-                    userRole = dbUser.role;
-                }
-            }
-
             // Simpan seluruh data user dari DB ke appState
+            // Pastikan role juga tersimpan dengan benar
             appState.user = dbUser;
 
             // Simpan sesi user ke localStorage untuk persistensi
             localStorage.setItem('frixsave_user', JSON.stringify(dbUser));
 
-            if (userRole === 'admin') {
+            if (appState.user.role === 'admin') {
                 appState.currentPage = 'admin-dashboard';
             }
-            console.log(`✅ Login successful for: ${email} with role: ${userRole}`);
+            console.log(`✅ Login successful for: ${email} with role: ${appState.user.role}`);
             return { success: true };
         },
         logout: async function() {
@@ -842,16 +862,22 @@ function initializeAppLogic() {
                 { data: budgets, error: budgetError },
                 { data: goals, error: goalError },
                 { data: receivables, error: receivableError },
+                { data: geminiKeySetting, error: geminiKeyError },
             ] = await Promise.all([
                 api.getTransactions(userId, currentPage, transactionsPerPage, startDate, endDate),
                 api.getTransactionsSummary(userId, startDate, endDate),
                 api.getBudgets(userId),
                 api.getGoals(userId),
                 api.getReceivables(userId),
+                api.getSystemSetting('gemini_api_key'),
             ]);
 
-            if (transError || budgetError || goalError || receivableError || summaryError) {
-                throw new Error('One or more data streams failed to load.');
+            // Check for fatal errors, but ignore the "not found" error for the API key (PGRST116)
+            const isApiKeyNotFoundError = geminiKeyError && geminiKeyError.code === 'PGRST116';
+            if (transError || budgetError || goalError || receivableError || summaryError || (geminiKeyError && !isApiKeyNotFoundError)) {
+                console.error("Data loading errors:", { transError, budgetError, goalError, receivableError, summaryError, geminiKeyError });
+                // We throw an error only for critical data failures
+                if (transError || budgetError || goalError || receivableError || summaryError) throw new Error('One or more critical data streams failed to load.');
             }
 
             appState.transactions = transactions || [];
@@ -866,6 +892,11 @@ function initializeAppLogic() {
             appState.transactionManagement.totalTransactions = transCount || 0;
             appState.goals = goals || [];
             appState.receivables = receivables || [];
+            if (geminiKeySetting) {
+                appState.system.geminiApiKey = geminiKeySetting.value;
+            } else {
+                appState.system.geminiApiKey = null;
+            }
             
             console.log('✅ Data loaded from Supabase.');
             
@@ -1297,21 +1328,29 @@ function initializeAppLogic() {
                     <div class="grid h-full grid-cols-5 mx-auto">
                         ${renderBottomNavItem('overview', 'Ringkasan', 'fas fa-home')}
                         ${renderBottomNavItem('goals', 'Target', 'fas fa-bullseye')}
-                        
-                        <!-- Tombol Tambah di Tengah -->
-                        <div class="flex items-center justify-center">
-                            <button onclick="showQuickAddModal()" class="inline-flex items-center justify-center w-16 h-16 font-medium bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-full shadow-lg transform -translate-y-4 hover:scale-110 transition-transform duration-300">
-                                <i class="fas fa-plus text-2xl"></i>
-                            </button>
-                        </div>
-
+                        <div class="flex items-center justify-center"></div> <!-- Placeholder for the central button -->
                         ${renderBottomNavItem('budgets', 'Anggaran', 'fas fa-chart-pie')}
                         ${renderBottomNavItem('reports', 'Laporan', 'fas fa-chart-bar')}
                     </div>
                 </div>
 
+                <!-- Floating Action Buttons (Mobile Only) -->
+                <div class="lg:hidden fixed bottom-24 right-4 z-40 space-y-3">
+                    <!-- Frixsave AI FAB -->
+                    <button onclick="navigateTo('ai-chat')" class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-robot text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Centered Add Button (Mobile Only) -->
+                <div class="lg:hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50">
+                    <button onclick="showQuickAddModal()" class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-plus text-2xl"></i>
+                    </button>
+                </div>
+
                 <!-- Modern Footer -->
-                <footer class="lg:ml-72 bg-white/60 backdrop-blur-sm border-t border-white/20 py-6 px-4 sm:px-6 lg:px-8 dark:bg-slate-800/60 dark:border-slate-700">
+                <footer class="lg:ml-72 bg-white/60 backdrop-blur-sm border-t border-white/20 py-4 px-4 sm:px-6 lg:px-8 dark:bg-slate-800/60 dark:border-slate-700">
                     <div class="text-center">
                         <p class="text-sm text-gray-600 dark:text-gray-400">
                             Frixsave by <span class="font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">HPUTRAX</span>
@@ -1339,13 +1378,16 @@ function initializeAppLogic() {
         const inactiveClass = 'text-gray-500 dark:text-gray-400';
 
         return `
-            <button type="button" onclick="navigateTo('${pageId}')" class="inline-flex flex-col items-center justify-center px-2 hover:bg-gray-50 dark:hover:bg-slate-700/50 group transition-colors duration-300">
-                <div class="w-8 h-8 flex items-center justify-center">
-                    <i class="${icon} text-xl ${isActive ? activeClass : inactiveClass} group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300"></i>
+            <button type="button" onclick="navigateTo('${pageId}')" class="relative inline-flex flex-col items-center justify-center w-full h-full text-center hover:bg-gray-50 dark:hover:bg-slate-700/50 group transition-colors duration-300">
+                <div class="w-10 h-10 flex items-center justify-center">
+                    <i class="${icon} text-xl ${isActive ? activeClass : inactiveClass} group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-all duration-300 ${isActive ? 'transform scale-110' : ''}"></i>
                 </div>
-                <span class="text-xs ${isActive ? activeClass + ' font-semibold' : inactiveClass} group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
+                <span class="text-xs ${isActive ? activeClass + ' font-bold' : inactiveClass} group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
                     ${label}
                 </span>
+                ${isActive ? `
+                    <div class="absolute bottom-2 w-1.5 h-1.5 bg-indigo-500 rounded-full animate-fadeIn"></div>
+                ` : ''}
             </button>
         `;
     }
@@ -1355,10 +1397,11 @@ function initializeAppLogic() {
             { id: 'overview', label: 'Ringkasan', icon: 'fas fa-chart-line' },
             { id: 'transactions', label: 'Transaksi', icon: 'fas fa-receipt' },
             { id: 'budgets', label: 'Anggaran', icon: 'fas fa-chart-pie' },
-            { id: 'goals', label: 'Target', icon: 'fas fa-bullseye' },
+            { id: 'goals', label: 'Target', icon: 'fas fa-bullseye' }, // Moved up
             { id: 'receivables', label: 'Piutang', icon: 'fas fa-hand-holding-usd' },
             { id: 'reports', label: 'Laporan', icon: 'fas fa-chart-bar' },
-            { id: 'settings', label: 'Pengaturan', icon: 'fas fa-cog' }
+            { id: 'ai-chat', label: 'Frixsave AI', icon: 'fas fa-robot' },
+            { id: 'settings', label: 'Pengaturan', icon: 'fas fa-cog' },
         ];
         
         const adminMenuItems = [
@@ -1403,6 +1446,8 @@ function initializeAppLogic() {
                 return renderReceivablesPage();
             case 'reports':
                 return renderReportsPage();
+            case 'ai-chat':
+                return renderAiChatPage();
             case 'goals':
                 return renderGoalsPage();
             case 'settings':
@@ -2798,6 +2843,40 @@ function initializeAppLogic() {
                         </button>
                     </form>
                 </div>
+
+                ${appState.user?.role === 'admin' ? `
+                <!-- API Settings (Admin Only) -->
+                <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
+                    <div class="flex items-center mb-6">
+                        <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mr-3 shadow-lg">
+                            <i class="fas fa-key text-white text-sm"></i>
+                        </div>
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Pengaturan API (Admin)</h3>
+                    </div>
+                    <form class="space-y-4 sm:space-y-6">
+                        <div class="relative group">
+                            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-2 sm:mb-3 flex items-center">
+                                Kunci API Google Gemini
+                            </label>
+                            <input
+                                type="password"
+                                id="gemini-api-key"
+                                value="${appState.system.geminiApiKey || ''}"
+                                placeholder="Masukkan kunci API Gemini untuk seluruh sistem"
+                                class="w-full px-4 sm:px-6 py-3 sm:py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium bg-white/80 backdrop-blur-sm transition-all duration-300 text-sm sm:text-base shadow-sm group-hover:border-blue-300 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-gray-400"
+                            />
+                            <p class="text-xs text-gray-500 mt-2">Kunci API ini akan digunakan oleh semua pengguna untuk fitur Frixsave AI.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onclick="saveApiSettings()"
+                            class="w-full sm:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-6 sm:px-8 py-3 sm:py-2 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base"
+                        >
+                            <i class="fas fa-save mr-2"></i>Simpan Kunci API
+                        </button>
+                    </form>
+                </div>
+                ` : ''}
 
                 <!-- Security Settings -->
                 <div class="bg-white/70 backdrop-blur-sm rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 dark:bg-slate-800/70 dark:border-slate-700">
@@ -4400,7 +4479,7 @@ function initializeAppLogic() {
     }
 
     window.handleAddReceivable = handleAddReceivable;
-    function handleAddReceivable(event) {
+    async function handleAddReceivable(event) {
         event.preventDefault(); // Corrected from event.preventDefault
 
         const receivable = {
@@ -4408,11 +4487,26 @@ function initializeAppLogic() {
             amount: parseFloat(document.getElementById('receivable-amount').value) / 1000, // Amount is the target amount
             current_amount: 0, // Initialize current_amount to 0
             due_date: document.getElementById('receivable-due-date').value,
-            description: document.getElementById('receivable-description').value.trim()
+            description: document.getElementById('receivable-description').value.trim(),
         };
 
-        createReceivable(receivable); // Changed from saveReceivable to match convention
+        // 1. Create the receivable record
+        const createdReceivable = await createReceivable(receivable);
+
+        // 2. If receivable is created successfully, create a corresponding expense transaction
+        if (createdReceivable) {
+            const expenseTransaction = {
+                type: 'expense',
+                amount: receivable.amount,
+                category: '💸 Utang', // Expense category for lending money
+                description: `Memberi pinjaman kepada ${receivable.debtor_name}`,
+                date: new Date().toISOString().split('T')[0],
+            };
+            await saveTransaction(expenseTransaction); // This will also reload data and render
+        }
+
         hideAddReceivableForm();
+        showSyncStatus('success', 'Piutang & transaksi pengeluaran berhasil dicatat!');
     }
 
     window.handleAddDebt = handleAddDebt;
@@ -4478,7 +4572,7 @@ function initializeAppLogic() {
         } 
     }
 
-    async function createReceivable(receivable) { // Renamed from saveReceivable
+    async function createReceivable(receivable) {
         if (!appState.user) return;
 
         receivable.id = Date.now();
@@ -4492,15 +4586,16 @@ function initializeAppLogic() {
                 if (error) {
                     showSyncStatus('error', 'Gagal sync piutang ke cloud');
                     console.error('Supabase receivable create error:', error);
+                    return null;
                 } else {
-                    await loadUserData();
-                    render();
-                    showSyncStatus('success', 'Piutang dicatat & disinkronisasi');
+                    // Don't render here, let the caller handle it.
+                    return data[0]; // Return the created receivable
                 }
             }
         } catch (error) {
             console.error('Error creating receivable:', error);
             showSyncStatus('error', 'Gagal mencatat piutang');
+            return null;
         }
     }
 
@@ -4588,7 +4683,7 @@ function initializeAppLogic() {
         const incomeTransaction = {
             type: 'income',
             amount: installmentAmount,
-            category: 'Piutang', // A dedicated category for receivable payments
+            category: '📥 Piutang', // A dedicated category for receivable payments
             description: `Cicilan dari ${receivable.debtor_name}`,
             date: new Date().toISOString().split('T')[0],
             user_id: appState.user.id,
@@ -4792,8 +4887,8 @@ function initializeAppLogic() {
                 if (remainingAmount > 0) {
                     const incomeTransaction = {
                         type: 'income',
-                        amount: remainingAmount,
-                        category: 'Piutang',
+                        amount: remainingAmount, // The remaining amount to be paid
+                        category: '📥 Piutang', // Use the correct income category
                         description: `Pelunasan dari ${receivable.debtor_name}`,
                         date: new Date().toISOString().split('T')[0],
                         user_id: appState.user.id,
@@ -5337,6 +5432,186 @@ function initializeAppLogic() {
         }
     }
 
+    window.saveApiSettings = saveApiSettings;
+    async function saveApiSettings() {
+        if (appState.user?.role !== 'admin') {
+            showSyncStatus('error', 'Hanya admin yang dapat mengubah pengaturan ini.');
+            return;
+        }
+
+        const geminiApiKey = document.getElementById('gemini-api-key')?.value.trim();
+
+        try {
+            const { data, error } = await api.updateSystemSetting('gemini_api_key', geminiApiKey);
+
+            if (error || !data) { // Check for !data as well
+                console.error('❌ Supabase API key update error:', error);
+                showSyncStatus('error', 'Gagal menyimpan kunci API. Pastikan Anda adalah admin.');
+                return;
+            }
+
+            // Update local state
+            appState.system.geminiApiKey = geminiApiKey;
+
+            showSyncStatus('success', 'Kunci API berhasil disimpan & disinkronisasi!');
+            render();
+        } catch (e) {
+            console.error('❌ Exception during API key update:', e);
+            showSyncStatus('error', 'Terjadi kesalahan saat menyimpan kunci API.');
+        }
+    }
+
+    function renderAiChatPage() {
+        const hasApiKey = !!appState.system.geminiApiKey;
+
+        return `
+            <div class="fade-in h-[calc(100vh-10rem)] lg:h-[calc(100vh-12rem)] flex flex-col">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-400 flex items-center">
+                            <i class="fas fa-robot mr-3"></i> Frixsave AI
+                        </h1>
+                        <p class="text-gray-600 text-sm sm:text-base mt-1 dark:text-gray-400">Asisten keuangan pribadi Anda</p>
+                    </div>
+                    <div class="flex items-center space-x-2 ${hasApiKey ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300'} px-3 py-1 rounded-full">
+                        <i class="fas ${hasApiKey ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
+                        <span class="text-xs font-medium">${hasApiKey ? 'Gemini API Terhubung' : 'API Key Belum Diatur'}</span>
+                    </div>
+                </div>
+
+                <!-- Chat Area -->
+                <div id="chat-messages" class="flex-1 space-y-6 overflow-y-auto p-4 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-3xl shadow-inner border border-white/20 dark:border-slate-700/50">
+                    <!-- Initial Message -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                            <i class="fas fa-robot text-white"></i>
+                        </div>
+                        <div class="chat-bubble-model p-4 max-w-lg">
+                            <p class="font-semibold mb-2">Halo, saya Frixsave AI!</p>
+                            <p class="text-sm">Saya dapat membantu Anda menganalisis keuangan. Coba klik salah satu pertanyaan di bawah ini:</p>
+                        </div>
+                    </div>
+                    <!-- Clickable Prompt Suggestions -->
+                    <div class="flex flex-wrap justify-start gap-2 pl-14">
+                        <button onclick="submitAiPrompt('Beri aku ringkasan keuanganku bulan ini.')" class="bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-indigo-50 dark:hover:bg-slate-600 transition-all">
+                            Ringkasan bulan ini?
+                        </button>
+                        <button onclick="submitAiPrompt('Apa kategori pengeluaran terbesarku?')" class="bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-indigo-50 dark:hover:bg-slate-600 transition-all">
+                            Pengeluaran terbesar?
+                        </button>
+                        <button onclick="submitAiPrompt('Bagaimana cara menghemat lebih banyak uang?')" class="bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-indigo-50 dark:hover:bg-slate-600 transition-all">
+                            Tips hemat?
+                        </button>
+                    </div>
+
+                    ${appState.aiChat.messages.map(msg => `
+                        <div class="flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}">
+                            ${msg.role === 'model' ? `
+                                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                                    <i class="fas fa-robot text-white"></i>
+                                </div>
+                            ` : ''}
+                            <div class="${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-model'} p-4 max-w-lg shadow-md">
+                                <p class="whitespace-pre-wrap">${msg.content}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+
+                    ${appState.aiChat.isLoading ? `
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+                                <i class="fas fa-robot text-white"></i>
+                            </div>
+                            <div class="chat-bubble-model p-4 max-w-lg typing-indicator">
+                                <span></span><span></span><span></span>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- Input Form -->
+                <div class="mt-6">
+                    ${!hasApiKey ? `
+                        <div class="text-center p-4 bg-yellow-50 dark:bg-yellow-500/10 rounded-2xl border border-yellow-200 dark:border-yellow-500/20 mb-4">
+                            <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                                <i class="fas fa-key mr-2"></i>Untuk menggunakan Frixsave AI, Anda perlu mengatur <strong>Kunci API Google Gemini</strong> Anda di halaman 
+                                <button onclick="navigateTo('settings')" class="font-bold underline hover:text-yellow-600">Pengaturan</button>.
+                            </p>
+                        </div>
+                    ` : ''}
+                    <form onsubmit="handleAiChatSubmit(event)" class="flex items-center gap-3">
+                        <input
+                            type="text"
+                            id="ai-chat-input"
+                            placeholder="${hasApiKey ? 'Ketik pertanyaan Anda...' : 'Atur API Key untuk memulai...'}"
+                            class="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                            ${!hasApiKey ? 'disabled' : ''}
+                        />
+                        <button
+                            type="submit"
+                            class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white w-16 h-16 rounded-2xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            ${!hasApiKey || appState.aiChat.isLoading ? 'disabled' : ''}
+                        >
+                            <i class="fas fa-paper-plane text-xl"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        `;
+    }
+
+    window.handleAiChatSubmit = handleAiChatSubmit;
+    async function handleAiChatSubmit(event) {
+        event.preventDefault();
+        const input = document.getElementById('ai-chat-input');
+        const userMessage = input.value.trim();
+
+        if (!userMessage || !appState.system.geminiApiKey) return;
+
+        // Add user message to state and render
+        appState.aiChat.messages.push({ role: 'user', content: userMessage });
+        appState.aiChat.isLoading = true;
+        input.value = '';
+        render();
+
+        // Scroll to bottom
+        setTimeout(() => {
+            const chatContainer = document.getElementById('chat-messages');
+            if(chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 100);
+
+        try {
+            // Call the streaming function
+            await streamAiFinancialAdvice(userMessage);
+
+        } catch (error) {
+            console.error("Error from Gemini AI:", error);
+            // Add a new, separate error message bubble
+            appState.aiChat.messages.push({ 
+                role: 'model', 
+                content: `Maaf, terjadi kesalahan saat menghubungi AI. Pastikan API Key Anda valid dan coba lagi.\n\nError: ${error.message}` 
+            });
+        } finally {
+            appState.aiChat.isLoading = false;
+            render();
+            // Scroll to bottom again after response
+            setTimeout(() => {
+                const chatContainer = document.getElementById('chat-messages');
+                if(chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 100);
+        }
+    }
+
+    window.submitAiPrompt = submitAiPrompt;
+    function submitAiPrompt(prompt) {
+        const input = document.getElementById('ai-chat-input');
+        if (!input) return;
+        input.value = prompt;
+        // Create and dispatch a submit event on the form
+        const form = input.closest('form');
+        if (form) form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    }
+
     window.exportData = exportData;
     function exportData() {
         if (!appState.user) return;
@@ -5856,6 +6131,21 @@ function initializeAppLogic() {
         }, () => {
             showSyncStatus('error', 'Gagal menyalin hash.');
         });
+    }
+
+    function updateLastMessage(textChunk) {
+        if (appState.aiChat.messages.length === 0) return;
+    
+        const lastMessage = appState.aiChat.messages[appState.aiChat.messages.length - 1];
+        if (lastMessage.role === 'model') {
+            lastMessage.content += textChunk;
+            render(); // Re-render to show the new text
+            // Auto-scroll to the bottom of the chat
+            const chatContainer = document.getElementById('chat-messages');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
     }
 
     window.viewUserDetails = viewUserDetails;
