@@ -1750,7 +1750,7 @@ function initializeAppLogic() {
                         </div>
                     ` : `
                         <div class="space-y-4">
-                            ${appState.transactions.slice(-5).reverse().map(t => `
+                            ${appState.transactions.slice(0, 5).map(t => `
                                 <div class="flex items-center justify-between p-4 bg-white/50 rounded-2xl border border-white/30 hover:bg-white/70 transition-all duration-300 dark:bg-slate-700/50 dark:border-slate-600 dark:hover:bg-slate-700">
                                     <div class="flex items-center space-x-4">
                                         <div class="w-12 h-12 bg-gradient-to-br from-${t.type === 'income' ? 'green' : 'red'}-400 to-${t.type === 'income' ? 'emerald' : 'rose'}-500 rounded-2xl flex items-center justify-center shadow-lg">
