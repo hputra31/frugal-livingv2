@@ -3259,7 +3259,7 @@ function initializeAppLogic() {
                                     <input
                                         type="date"
                                         id="quick-date"
-                                        value="${new Date().toISOString().split('T')[0]}"
+                                        value="${new Date().toLocaleDateString('en-CA')}"
                                         class="w-full px-4 sm:px-6 py-4 sm:py-5 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold bg-white/80 backdrop-blur-sm transition-all duration-300 group-hover:border-indigo-300 text-sm sm:text-lg shadow-sm"
                                         required
                                     />
